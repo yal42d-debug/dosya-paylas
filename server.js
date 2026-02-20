@@ -36,6 +36,16 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
+// Main Web Route (Explicitly serve index.html)
+app.get('/', (req, res) => {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.send('<h1>Dosya Paylaşım Sunucusu Aktif</h1><p>Ancak web arayüzü (index.html) bulunamadı. Lütfen public klasörünü kontrol edin.</p>');
+  }
+});
+
 // Content-Disposition Fix for UTF-8
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),

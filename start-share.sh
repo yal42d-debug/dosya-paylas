@@ -56,11 +56,16 @@ else
 fi
 
 if [ "$SHOULD_RESTART" = true ]; then
-    echo -e "${YELLOW}🌐 Sunucu hazırlanıyor ve başlatılıyor...${NC}"
+    echo -e "${YELLOW}🌐 Sunucu güncelleniyor ve baştan başlatılıyor...${NC}"
+    # Eski süreci öldürdüğümüzden emin olalım
+    lsof -ti :3000 | xargs kill -9 &> /dev/null
+    sleep 1
+
     curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(date +%s)" -o "server.js"
     
-    # Web arayüzü dosyasını indir
+    # Web arayüzü dosyasını indir (Klasör ve dosya kontrolü)
     mkdir -p public
+    echo -e "${BLUE}📁 Web dosyaları indiriliyor...${NC}"
     curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html?v=$(date +%s)" -o "public/index.html"
     
     # Sunucuyu arka planda başlat
