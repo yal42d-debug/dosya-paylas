@@ -660,7 +660,7 @@
                                 </div>
                             </div>
                             <div>
-                                <button class="action-btn" onclick="location.href='http://localhost:3000/download/${encodeURIComponent(file.name)}'">
+                                <button class="action-btn" onclick="location.href= BASE_URL + '/download/${encodeURIComponent(file.name)}'">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 </button>
                                 <button class="action-btn delete-btn" onclick="deleteFile('${encodeURIComponent(file.name)}')">
@@ -864,6 +864,8 @@
         }
 
         // QR Scanner Logic
+        let BASE_URL = "http://localhost:3000";
+
         function startQrScan() {
             if (!window.cordova || !cordova.plugins || !cordova.plugins.barcodeScanner) {
                 alert("QR Tarayıcı sadece mobil uygulamada (Android/iOS) çalışır.");
@@ -873,18 +875,31 @@
             cordova.plugins.barcodeScanner.scan(
                 function (result) {
                     if (!result.cancelled) {
-                        const scannedText = result.text;
+                        let scannedText = result.text.trim();
                         console.log("Scanned:", scannedText);
 
-                        // If it's a URL, offer to navigate or use it
                         if (scannedText.startsWith('http')) {
-                            if (confirm("Şu adrese bağlanmak istiyor musunuz?\n" + scannedText)) {
-                                if (scannedText.includes('/api/')) {
-                                    // Logic for internal API calls if needed
-                                    alert("API adresi algılandı: " + scannedText);
-                                } else {
-                                    window.open(scannedText, '_blank');
-                                }
+                            const targetUrl = scannedText.endsWith('/') ? scannedText.slice(0, -1) : scannedText;
+
+                            if (confirm("Bu sunucuya bağlanmak istiyor musunuz?\n" + targetUrl)) {
+                                // Test connection to see if it's our server
+                                fetch(targetUrl + "/api/info")
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.ip || data.localUrl) {
+                                            BASE_URL = targetUrl;
+                                            alert("Bağlantı Başarılı! Artık bu sunucudaki dosyaları görüyorsunuz.");
+                                            startApp(); // Refresh UI with new BASE_URL
+                                        } else {
+                                            window.open(targetUrl, '_blank');
+                                        }
+                                    })
+                                    .catch(err => {
+                                        console.error("Connection failed", err);
+                                        alert("Sunucuya bağlanılamadı. Cihazların aynı Wi-Fi ağında olduğundan emin olun.");
+                                        // Still try to open in browser as fallback
+                                        window.open(targetUrl, '_blank');
+                                    });
                             }
                         } else {
                             alert("QR İçeriği:\n" + scannedText);
@@ -900,7 +915,7 @@
                     showTorchButton: true,
                     torchOn: false,
                     saveHistory: true,
-                    prompt: "QR Kodu çerçeve içine alın",
+                    prompt: "Sunucu QR Kodunu okutun",
                     resultDisplayDuration: 500,
                     formats: "QR_CODE,PDF_417",
                     orientation: "portrait",
@@ -922,12 +937,12 @@
                 else console.log("Node started successfully.");
             });
 
-            // 2. Override Fetch to use localhost
+            // 2. Override Fetch to use BASE_URL
             const originalFetch = window.fetch;
             window.fetch = function (url, opts) {
-                // If url is relative like "/api/...", prepend localhost
+                // If url is relative like "/api/...", prepend BASE_URL
                 if (typeof url === 'string' && url.startsWith("/")) {
-                    url = "http://localhost:3000" + url;
+                    url = BASE_URL + url;
                 }
                 return originalFetch(url, opts);
             };

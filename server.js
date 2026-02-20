@@ -161,23 +161,23 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.clear();
-    console.log('===================================================');
-    console.log('🚀 DOSYA PAYLAŞIM SUNUCUSU AKTİF');
-    console.log('---------------------------------------------------');
+    console.log('\x1b[36m%s\x1b[0m', '===================================================');
+    console.log('\x1b[32m%s\x1b[0m', '🚀 DOSYA PAYLAŞIM SUNUCUSU AKTİF');
+    console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
     console.log(`📂 Klasör: ${UPLOAD_DIR}`);
     console.log(`🏠 Yerel Ağ: ${serverUrl}`);
     if (currentTunnelUrl) console.log(`🌍 İnternet: ${currentTunnelUrl}`);
-    console.log('---------------------------------------------------');
+    console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
 
-    console.log('\n📲 YEREL AĞ QR KODU (Ev/Ofis İçi):');
+    console.log('\n\x1b[33m%s\x1b[0m', '📲 YEREL AĞ QR KODU (Ev/Ofis İçi):');
+    console.log(' (Telefonunuzdaki APK ile bu kodu taratın)\n');
     qrcodeTerminal.generate(serverUrl, { small: true });
 
     if (currentTunnelUrl) {
-      console.log('\n🌍 İNTERNET/TÜNEL QR KODU (Dışarıdan Erişim):');
+      console.log('\n\x1b[33m%s\x1b[0m', '🌍 İNTERNET/TÜNEL QR KODU (Dışarıdan Erişim):');
       qrcodeTerminal.generate(currentTunnelUrl, { small: true });
     }
-    console.log('\n(Bu kodları mobil uygulama veya tarayıcı ile kullanabilirsiniz)');
-    console.log('---------------------------------------------------\n');
+    console.log('\n\x1b[36m%s\x1b[0m', '---------------------------------------------------\n');
   });
 }
 
