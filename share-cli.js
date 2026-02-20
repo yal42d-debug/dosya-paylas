@@ -5,6 +5,7 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 const readline = require('readline');
+const qrcodeTerminal = require('qrcode-terminal');
 
 // --- CONFIG ---
 const CONFIG_PATH = path.join(process.env.HOME || process.env.USERPROFILE, '.share-cli-config.json');
@@ -206,15 +207,19 @@ async function mainMenu() {
                 await question("\nEnter...");
             }
             else if (choice === '6') {
-                console.log(`\n${colors.bright}Sunucu Bilgileri:${colors.reset}`);
+                console.log(`\n${colors.bright}Sunucu Bilgileri & QR Kodları:${colors.reset}`);
                 const info = await request('GET', '/api/info');
-                console.log(`${colors.yellow}Yerel Bağlantı:${colors.reset} ${info.localUrl}`);
-                console.log(`${colors.cyan}(QR Kodu Sunucu Terminalinde Görünür)${colors.reset}`);
+
+                console.log(`\n${colors.yellow}🏠 YEREL AĞ BAĞLANTISI:${colors.reset}`);
+                console.log(`${info.localUrl}`);
+                qrcodeTerminal.generate(info.localUrl, { small: true });
+
                 if (info.tunnelUrl) {
-                    console.log(`\n${colors.yellow}İnternet Bağlantısı:${colors.reset} ${info.tunnelUrl}`);
-                    console.log(`${colors.cyan}(QR Kodu Sunucu Terminalinde Görünür)${colors.reset}`);
+                    console.log(`\n${colors.yellow}🌍 İNTERNET/TÜNEL BAĞLANTISI:${colors.reset}`);
+                    console.log(`${info.tunnelUrl}`);
+                    qrcodeTerminal.generate(info.tunnelUrl, { small: true });
                 }
-                await question("\nEnter...");
+                await question("\nDevam etmek için Enter...");
             }
             else if (choice === '7') { console.log("Güle güle!"); process.exit(0); }
         } catch (e) {
