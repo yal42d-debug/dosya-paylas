@@ -30,7 +30,7 @@ fi
 # Geçici bir klasöre aracı indir ve çalıştır
 TMP_DIR=$(mktemp -d)
 echo -e "${BLUE}📥 Araç indiriliyor...${NC}"
-curl -sL https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js -o "$TMP_DIR/share-cli.js"
+curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "$TMP_DIR/share-cli.js"
 
 if [ -f "$TMP_DIR/share-cli.js" ]; then
     node "$TMP_DIR/share-cli.js" < /dev/tty
