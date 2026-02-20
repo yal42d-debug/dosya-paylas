@@ -37,14 +37,31 @@ npm init -y &> /dev/null
 echo -e "${BLUE}📦 Bağımlılıklar yükleniyor...${NC}"
 npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel &> /dev/null
 
-# Sunucu kontrolü ve başlatma
-if ! curl -s http://localhost:3000/api/info &> /dev/null; then
-    echo -e "${YELLOW}🌐 Sunucu kapalı, otomatik başlatılıyor...${NC}"
+# Sunucu kontrolü ve başlatma (En güncel sürüm ve tünel kontrolü)
+SHOULD_RESTART=false
+SERVER_INFO=$(curl -s http://localhost:3000/api/info)
+
+if [ $? -ne 0 ]; then
+    SHOULD_RESTART=true
+else
+    # Sunucu çalışıyor ama tünel yoksa veya eski sürümse restart et
+    HAS_TUNNEL=$(echo $SERVER_INFO | grep -o 'tunnelUrl')
+    if [ -z "$HAS_TUNNEL" ]; then
+        echo -e "${YELLOW}🔄 Mevcut sunucuda tünel desteği yok, güncelleniyor...${NC}"
+        lsof -ti :3000 | xargs kill -9 &> /dev/null
+        SHOULD_RESTART=true
+    fi
+fi
+
+if [ "$SHOULD_RESTART" = true ]; then
+    echo -e "${YELLOW}🌐 Sunucu hazırlanıyor ve başlatılıyor...${NC}"
     curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(date +%s)" -o "server.js"
     # Sunucuyu arka planda başlat
     node server.js > server.log 2>&1 &
-    # Sunucunun açılması için kısa bir bekleme
-    sleep 2
+    # Tünelin ve sunucunun tam açılması için bekle
+    echo -en "${BLUE}⏳ Sunucu ve İnternet Bağlantısı kuruluyor...${NC}"
+    for i in {1..5}; do echo -n "."; sleep 1; done
+    echo -e ""
 fi
 
 echo -e "${BLUE}📥 Araç indiriliyor...${NC}"
