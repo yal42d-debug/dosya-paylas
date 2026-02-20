@@ -50,18 +50,15 @@ const upload = multer({ storage: storage });
 // Routes
 app.get('/api/info', async (req, res) => {
   try {
-    const qrData = currentTunnelUrl || serverUrl;
-    const qrCodeDataUrl = await QRCode.toDataURL(qrData);
     res.json({
-      url: qrData,
-      qrCode: qrCodeDataUrl,
+      localUrl: serverUrl,
+      tunnelUrl: currentTunnelUrl,
       ip: localIp,
       port: PORT,
-      isTunnel: !!currentTunnelUrl,
       shareDir: UPLOAD_DIR
     });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to generate QR code' });
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
@@ -87,9 +84,11 @@ app.get('/api/files', (req, res) => {
   fs.readdir(UPLOAD_DIR, (err, files) => {
     if (err) return res.status(500).json({ error: 'Failed to list' });
     const list = files.filter(f => !f.startsWith('.')).map(file => {
-      const stats = fs.statSync(path.join(UPLOAD_DIR, file));
-      return { name: file, size: stats.size, date: stats.mtime };
-    });
+      try {
+        const stats = fs.statSync(path.join(UPLOAD_DIR, file));
+        return { name: file, size: stats.size, date: stats.mtime };
+      } catch (e) { return null; }
+    }).filter(f => f !== null);
     res.json(list);
   });
 });
@@ -114,13 +113,11 @@ app.delete('/api/files/:filename', (req, res) => {
 
 // START LOGIC
 async function startServer() {
-  // Check for --tunnel flag
   if (process.argv.includes('--tunnel')) {
     console.log('📡 Tünel başlatılıyor...');
     try {
       const tunnel = await localtunnel({ port: PORT });
       currentTunnelUrl = tunnel.url;
-      console.log(`🌍 İnternet Adresi: ${currentTunnelUrl}`);
     } catch (e) {
       console.error('❌ Tünel hatası:', e.message);
     }
@@ -133,14 +130,17 @@ async function startServer() {
     console.log('---------------------------------------------------');
     console.log(`📂 Klasör: ${UPLOAD_DIR}`);
     console.log(`🏠 Yerel Ağ: ${serverUrl}`);
-    if (currentTunnelUrl) console.log(`🌎 İnternet: ${currentTunnelUrl}`);
+    if (currentTunnelUrl) console.log(`🌍 İnternet: ${currentTunnelUrl}`);
     console.log('---------------------------------------------------');
 
-    // Print QR to Terminal
-    const qrData = currentTunnelUrl || serverUrl;
-    console.log('\n📲 BAĞLANMAK İÇİN BU QR KODU TARATIN:\n');
-    qrcodeTerminal.generate(qrData, { small: true });
-    console.log('\n(Bu kodu SHARE-CLI veya mobil app ile taratabilirsiniz)');
+    console.log('\n📲 YEREL AĞ QR KODU (Ev/Ofis İçi):');
+    qrcodeTerminal.generate(serverUrl, { small: true });
+
+    if (currentTunnelUrl) {
+      console.log('\n🌍 İNTERNET/TÜNEL QR KODU (Dışarıdan Erişim):');
+      qrcodeTerminal.generate(currentTunnelUrl, { small: true });
+    }
+    console.log('\n(Bu kodları mobil uygulama veya tarayıcı ile kullanabilirsiniz)');
     console.log('---------------------------------------------------\n');
   });
 }
