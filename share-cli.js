@@ -120,8 +120,9 @@ async function handleUpload() {
         });
 
         upReq.write(header);
-        fs.createReadStream(filePath).pipe(upReq, { end: false });
-        await new Promise(r => fs.createReadStream(filePath).on('end', r));
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.pipe(upReq, { end: false });
+        await new Promise(r => fileStream.on('end', r));
         upReq.end(footer);
     }
     await question("\nDevam etmek için Enter...");

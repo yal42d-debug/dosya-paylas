@@ -161,8 +161,9 @@ async function run() {
                 });
 
                 upReq.write(header);
-                fs.createReadStream(uploadPath).pipe(upReq, { end: false });
-                fs.createReadStream(uploadPath).on('end', () => {
+                const uploadStream = fs.createReadStream(uploadPath);
+                uploadStream.pipe(upReq, { end: false });
+                uploadStream.on('end', () => {
                     upReq.end(footer);
                 });
                 break;
