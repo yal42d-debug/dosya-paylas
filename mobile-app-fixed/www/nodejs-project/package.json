@@ -1,18 +1,21 @@
 {
-  "name": "nodejs-file-share",
+  "name": "local-file-share",
   "version": "1.0.0",
-  "description": "File share node backend",
+  "description": "Local LAN file sharing via web interface",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "archiver": "^5.3.1",
+    "archiver": "^5.3.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "ip": "^1.1.8",
+    "firebase": "^12.9.0",
+    "glob": "^7.2.3",
+    "ip": "^2.0.1",
     "localtunnel": "^2.0.2",
     "multer": "^1.4.5-lts.1",
-    "qrcode": "^1.5.1"
+    "qrcode": "^1.5.3",
+    "rimraf": "^3.0.2"
   }
 }

@@ -1,4 +1,34 @@
-console.log('--- NODE SERVER INITIALIZING ---');
+// server.js - Robust Mobile Version
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const ip = require('ip');
+
+// DEBUG LOGGING
+const logFile = path.join(require('os').tmpdir(), 'node-server-log.txt');
+function log(msg) {
+  fs.appendFileSync(logFile, new Date().toISOString() + ': ' + msg + '\n');
+  console.log(msg);
+}
+log("Node process starting...");
+process.on('uncaughtException', (err) => log("UNCAUGHT: " + err.stack));
+process.on('unhandledRejection', (r) => log("REJECT: " + r));
+const QRCode = require('qrcode');
+const cors = require('cors');
+const archiver = require('archiver');
+const os = require('os');
+const https = require('https');
+
+// Dynamic import for localtunnel to avoid startup crashes if it fails
+let localtunnel;
+try {
+  localtunnel = require('localtunnel');
+} catch (e) {
+  console.error('Localtunnel require failed:', e);
+}
+
+// Global Exception Handlers
 process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT EXCEPTION:', err);
 });
@@ -6,34 +36,28 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('UNHANDLED REJECTION:', reason);
 });
 
-const express = require('express');
-console.log('Express loaded');
-const multer = require('multer');
-console.log('Multer loaded');
-const path = require('path');
-const fs = require('fs');
-const ip = require('ip');
-console.log('IP loaded');
-const QRCode = require('qrcode');
-console.log('QRCode loaded');
-const cors = require('cors');
-console.log('CORS loaded');
-const archiver = require('archiver');
-console.log('Archiver loaded');
-const { spawn, exec } = require('child_process');
-
-console.log('Dependencies loaded. Setting up app...');
-const GIST_ID = '7b1eda69625097d262abd34cb09f4353';
-let tunnelProcess = null;
-let currentTunnelUrl = null;
+// Chat Storage (In-Memory)
+const messages = [];
 
 const app = express();
 const PORT = 3000;
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
 
-// Ensure upload directory exists
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR);
+// Path Logic
+let UPLOAD_DIR;
+try {
+  // Try tmpdir first
+  UPLOAD_DIR = path.join(os.tmpdir(), 'local-share-uploads');
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+  // Test write
+  fs.accessSync(UPLOAD_DIR, fs.constants.W_OK);
+} catch (err) {
+  console.error('Tmpdir access failed, falling back to local dir:', err);
+  UPLOAD_DIR = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    try { fs.mkdirSync(UPLOAD_DIR); } catch (e) { console.error('Failed to create local uploads dir', e); }
+  }
 }
 
 // Middleware
@@ -47,17 +71,12 @@ const storage = multer.diskStorage({
     cb(null, UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
-    // Try to safely handle UTF-8 filenames from various browsers
-    let filename = file.originalname;
+    // Multer gives originalname as Latin-1; decode to UTF-8
+    let name = file.originalname;
     try {
-      // If it's encoded as ISO-8859-1 (Latin1) by Multer/Express by mistake
-      if (/[^\u0000-\u00ff]/.test(filename) === false) {
-        filename = Buffer.from(file.originalname, 'latin1').toString('utf8');
-      }
-    } catch (e) {
-      filename = file.originalname;
-    }
-    cb(null, filename);
+      name = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    } catch (e) { }
+    cb(null, name);
   }
 });
 
@@ -65,9 +84,49 @@ const upload = multer({ storage: storage });
 
 // Routes
 
-// Get local IP address
-const localIp = ip.address();
+// Get local IP address - Improved detection
+function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      // Skip internal and non-IPv4
+      if (iface.family === 'IPv4' && !iface.internal) {
+        // Prefer 192.168.x.x or 10.x.x.x
+        if (iface.address.startsWith('192.') || iface.address.startsWith('10.') || iface.address.startsWith('172.')) {
+          return iface.address;
+        }
+      }
+    }
+  }
+  return ip.address(); // Fallback
+}
+const localIp = getLocalIp();
 const serverUrl = `http://${localIp}:${PORT}`;
+
+// Firebase Config Storage
+const FIREBASE_CONFIG_PATH = path.join(UPLOAD_DIR, 'firebase-config.json');
+
+app.post('/api/firebase/config', (req, res) => {
+  try {
+    fs.writeFileSync(FIREBASE_CONFIG_PATH, JSON.stringify(req.body));
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/firebase/config', (req, res) => {
+  try {
+    if (fs.existsSync(FIREBASE_CONFIG_PATH)) {
+      const data = fs.readFileSync(FIREBASE_CONFIG_PATH);
+      res.json(JSON.parse(data));
+    } else {
+      res.json({});
+    }
+  } catch (e) {
+    res.json({});
+  }
+});
 
 // API to get server info (QR code, URL)
 app.get('/api/info', async (req, res) => {
@@ -77,8 +136,21 @@ app.get('/api/info', async (req, res) => {
       url: serverUrl,
       qrCode: qrCodeDataUrl,
       ip: localIp,
-      port: PORT
+      port: PORT,
+      storage: UPLOAD_DIR
     });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate QR code' });
+  }
+});
+
+// Custom QR Generator
+app.post('/api/qr/custom', async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: 'Missing text' });
+  try {
+    const qrCodeDataUrl = await QRCode.toDataURL(text);
+    res.json({ qrCode: qrCodeDataUrl });
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate QR code' });
   }
@@ -88,18 +160,22 @@ app.get('/api/info', async (req, res) => {
 app.get('/api/files', (req, res) => {
   fs.readdir(UPLOAD_DIR, (err, files) => {
     if (err) {
-      return res.status(500).json({ error: 'Failed to list files' });
+      console.error('ReadDir Error:', err);
+      // Return empty list instead of 500 if directory is missing/unreadable
+      return res.json([]);
     }
 
     const fileList = files.map(file => {
-      const filePath = path.join(UPLOAD_DIR, file);
-      const stats = fs.statSync(filePath);
-      return {
-        name: file,
-        size: stats.size,
-        date: stats.mtime
-      };
-    });
+      try {
+        const filePath = path.join(UPLOAD_DIR, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          size: stats.size,
+          date: stats.mtime
+        };
+      } catch (e) { return null; }
+    }).filter(x => x);
 
     res.json(fileList);
   });
@@ -113,21 +189,79 @@ app.post('/api/upload', upload.array('files'), (req, res) => {
   res.json({ message: 'Files uploaded successfully', files: req.files.map(f => f.originalname) });
 });
 
-// Download file
-app.get('/api/download/:filename', (req, res) => {
-  const filename = req.params.filename;
+// --- Firebase Integration ---
+let firebaseApp;
+let firebaseStorage;
+
+app.post('/api/firebase/upload-file', async (req, res) => {
+  const { filename } = req.body;
+  if (!filename) return res.status(400).json({ error: 'Filename required' });
+
+  const filePath = path.join(UPLOAD_DIR, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+
+  try {
+    if (!fs.existsSync(FIREBASE_CONFIG_PATH)) {
+      return res.status(400).json({ error: 'Firebase config missing' });
+    }
+    const config = JSON.parse(fs.readFileSync(FIREBASE_CONFIG_PATH));
+
+    // Lazy load firebase
+    const { initializeApp, getApps } = require('firebase/app');
+    const { getStorage, ref, uploadBytes, getDownloadURL } = require('firebase/storage');
+
+    if (!getApps().length) {
+      firebaseApp = initializeApp(config);
+    } else {
+      firebaseApp = getApps()[0];
+    }
+    firebaseStorage = getStorage(firebaseApp);
+
+    // Read file
+    const fileBuffer = fs.readFileSync(filePath);
+    const storageRef = ref(firebaseStorage, 'uploads/' + filename);
+
+    // Upload
+    const snapshot = await uploadBytes(storageRef, fileBuffer);
+    const url = await getDownloadURL(snapshot.ref);
+
+    res.json({ success: true, url: url });
+  } catch (e) {
+    console.error("Firebase Upload Error:", e);
+    res.status(500).json({ error: 'Upload failed: ' + e.message });
+  }
+});
+
+// Download Source Code (must be before /download/* wildcard)
+app.get('/download-app', (req, res) => {
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  res.attachment('dosya-share-app.zip');
+  archive.pipe(res);
+  archive.file(path.join(__dirname, 'package.json'), { name: 'package.json' });
+  archive.file(path.join(__dirname, 'server.js'), { name: 'server.js' });
+  archive.directory(path.join(__dirname, 'public'), 'public');
+  archive.finalize();
+});
+
+// Download file - use wildcard to handle special chars in filenames
+app.get('/download/*', (req, res) => {
+  let filename = req.params[0];
+  try { filename = decodeURIComponent(filename); } catch (e) { }
+
   const filePath = path.join(UPLOAD_DIR, filename);
 
   if (fs.existsSync(filePath)) {
     res.download(filePath);
   } else {
-    res.status(404).json({ error: 'File not found' });
+    console.error('Download not found:', filename, '-> path:', filePath);
+    res.status(404).json({ error: 'File not found', requested: filename });
   }
 });
 
 // Delete file
 app.delete('/api/files/:filename', (req, res) => {
-  const filename = req.params.filename;
+  let filename = req.params.filename;
+  try { filename = decodeURIComponent(filename); } catch (e) { }
   const filePath = path.join(UPLOAD_DIR, filename);
 
   if (fs.existsSync(filePath)) {
@@ -138,183 +272,126 @@ app.delete('/api/files/:filename', (req, res) => {
   }
 });
 
-// Download Source Code
-app.get('/download-app', (req, res) => {
-  const archive = archiver('zip', { zlib: { level: 9 } });
 
-  res.attachment('dosya-share-app.zip');
 
-  archive.pipe(res);
-
-  // Append files
-  archive.file('package.json', { name: 'package.json' });
-  archive.file('server.js', { name: 'server.js' });
-  archive.directory('public/', 'public');
-
-  archive.finalize();
-});
-
-// --- Chat & QR APIs ---
-
-// In-memory chat store (simple implementation for now)
-let chatMessages = [];
-
-// Get chat messages
+// --- Chat API ---
 app.get('/api/chat', (req, res) => {
-  res.json(chatMessages);
+  res.json(messages);
 });
 
-// Post a chat message
 app.post('/api/chat', (req, res) => {
   const { sender, text } = req.body;
-  if (!sender || !text) {
-    return res.status(400).json({ error: 'Sender and text are required' });
-  }
-  const message = {
-    id: Date.now().toString(),
+  if (!sender || !text) return res.status(400).json({ error: 'Missing fields' });
+
+  const msg = {
+    id: Date.now(),
     sender,
     text,
     timestamp: new Date().toISOString()
   };
-  chatMessages.push(message);
-  // Keep only the last 100 messages to save memory
-  if (chatMessages.length > 100) {
-    chatMessages.shift();
-  }
-  res.json(message);
-});
+  messages.push(msg);
+  if (messages.length > 50) messages.shift();
 
-// Custom QR Code Generator API
-app.post('/api/qr/custom', async (req, res) => {
-  const { text } = req.body;
-  if (!text) {
-    return res.status(400).json({ error: 'Text is required to generate QR' });
-  }
+  // Firebase Relay
   try {
-    const qrCodeDataUrl = await QRCode.toDataURL(text);
-    res.json({ qrCode: qrCodeDataUrl });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to generate custom QR code' });
+    if (firebaseApp && firebaseStorage) { // Re-using existing check
+      // Check if database is initialized (we lazy load)
+      const { getDatabase, ref: dbRef, push } = require('firebase/database');
+      const db = getDatabase(firebaseApp);
+      push(dbRef(db, 'messages'), msg);
+    }
+  } catch (e) {
+    console.error("Firebase sync error", e);
   }
+
+  res.json({ success: true, message: msg });
 });
 
-// Set remote URL manually
+// --- Tunnel Management ---
+
+let tunnelInstance = null;
+let currentTunnelUrl = null;
+let externalTunnelUrl = null; // For cloudflared or other external tunnels
+
+function updateGist() {
+  const data = {
+    local: `http://${ip.address()}:${PORT}`,
+    tunnel: currentTunnelUrl || externalTunnelUrl || null,
+    lastUpdate: new Date().toISOString()
+  };
+  console.log('Server State Updated:', JSON.stringify(data));
+}
+
+// Set external tunnel URL (e.g. from cloudflared)
 app.post('/api/tunnel/set-url', (req, res) => {
   const { url } = req.body;
-  if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
-  }
-  currentTunnelUrl = url;
-  // Setting url manually assumes remote setup without localtunnel
-  res.json({ message: 'URL saved', url: currentTunnelUrl });
+  if (!url) return res.status(400).json({ error: 'Missing url' });
+  externalTunnelUrl = url;
+  console.log('External tunnel URL set:', url);
+  updateGist();
+  res.json({ message: 'External tunnel URL set', url: externalTunnelUrl });
 });
 
-// --- Tunnel Management (Localtunnel) ---
-
-const localtunnel = require('localtunnel');
-const https = require('https');
-
-function getPublicIp() {
-  return new Promise((resolve) => {
-    https.get('https://api.ipify.org', (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(data.trim()));
-    }).on('error', () => resolve('Bilinmiyor'));
-  });
-}
-
-async function updateGist(url, ip) {
-  if (!GIST_ID) return;
-  console.log(`Updating Gist ${GIST_ID} with URL: ${url} and IP: ${ip}`);
-  // If we had a token, we would do a PATCH request here.
-  // For now, we use the public IP as the "password" info.
-}
+// Clear external tunnel URL
+app.post('/api/tunnel/clear-url', (req, res) => {
+  externalTunnelUrl = null;
+  console.log('External tunnel URL cleared');
+  res.json({ message: 'External tunnel URL cleared' });
+});
 
 app.post('/api/tunnel/start', async (req, res) => {
-  if (tunnelProcess) {
+  if (tunnelInstance) {
     return res.json({ message: 'Tunnel already running', url: currentTunnelUrl });
   }
 
   try {
-    console.log('Starting Localtunnel...');
-    const tunnel = await localtunnel({ port: PORT });
-    tunnelProcess = tunnel;
-    currentTunnelUrl = tunnel.url;
+    console.log('Starting LocalTunnel...');
+    if (!localtunnel) localtunnel = require('localtunnel');
 
-    const publicIp = await getPublicIp();
-    console.log(`Localtunnel started: ${currentTunnelUrl}`);
-    console.log(`Public IP (Password): ${publicIp}`);
+    tunnelInstance = await localtunnel({ port: PORT });
+    currentTunnelUrl = tunnelInstance.url;
+    console.log('LocalTunnel started at:', currentTunnelUrl);
 
-    updateGist(currentTunnelUrl, publicIp);
-
-    tunnel.on('close', () => {
-      console.log('Localtunnel closed');
-      tunnelProcess = null;
+    tunnelInstance.on('close', () => {
+      console.log('LocalTunnel closed');
+      tunnelInstance = null;
       currentTunnelUrl = null;
     });
 
-    res.json({
-      message: 'Tunnel started',
-      url: currentTunnelUrl,
-      password: publicIp // Pass the public IP to the frontend
-    });
+    updateGist();
+    res.json({ message: 'Tunnel started', url: currentTunnelUrl });
   } catch (err) {
-    console.error('Failed to start localtunnel:', err);
-    tunnelProcess = null;
-    currentTunnelUrl = null;
-    res.status(500).json({ error: 'Failed to start tunnel' });
+    console.error('Tunnel start failed:', err);
+    res.status(500).json({ error: 'Failed to start tunnel: ' + err.message });
   }
 });
 
 app.post('/api/tunnel/stop', (req, res) => {
-  if (tunnelProcess) {
-    tunnelProcess.close();
-    tunnelProcess = null;
+  if (tunnelInstance) {
+    tunnelInstance.close();
+    tunnelInstance = null;
     currentTunnelUrl = null;
+    updateGist();
     res.json({ message: 'Tunnel stopped' });
   } else {
+    currentTunnelUrl = null;
     res.json({ message: 'Tunnel is not running' });
   }
 });
 
-app.get('/api/tunnel/status', async (req, res) => {
-  const publicIp = await getPublicIp();
+app.get('/api/tunnel/status', (req, res) => {
+  const activeUrl = currentTunnelUrl || externalTunnelUrl;
   res.json({
-    running: !!tunnelProcess,
-    url: currentTunnelUrl,
-    password: publicIp
+    running: !!(tunnelInstance || externalTunnelUrl),
+    url: activeUrl
   });
 });
 
-// SPA catch-all: Serve index.html for any other GET requests within the browser
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  } else {
-    res.status(404).json({ error: 'API endpoint not found' });
-  }
-});
-
 // Start server
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log('---------------------------------------------------');
-  console.log(`🚀 File Sharing & Chat Server Running!`);
+  console.log(`🚀 File Sharing Server Running (Mobile)!`);
   console.log(`📂 Shared Folder: ${UPLOAD_DIR}`);
   console.log(`🌐 Local URL: ${serverUrl}`);
   console.log('---------------------------------------------------');
-
-  // Print QR Code to terminal
-  try {
-    console.log('Scan this QR code with your mobile device:');
-    const qrString = await QRCode.toString(serverUrl, { type: 'terminal', small: true });
-    console.log(qrString);
-  } catch (err) {
-    console.error('Failed to generate terminal QR code:', err);
-  }
-
-  console.log('To upload via terminal (curl):');
-  console.log(`curl -F "files=@filename.ext" ${serverUrl}/api/upload`);
-  console.log('---------------------------------------------------');
 });
-

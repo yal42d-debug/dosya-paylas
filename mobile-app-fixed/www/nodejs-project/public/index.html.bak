@@ -468,7 +468,6 @@
             fetchInfo();
             setInterval(checkTunnelStatus, 5000);
             setInterval(fetchMessages, 2000);
-            setInterval(fetchFiles, 3000);
         }
 
         // --- Tabs Logic ---
@@ -766,8 +765,44 @@
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 });
         }
-        // Initialize immediately for web clients
-        startApp();
+    </script>
+    <script src="cordova.js"></script>
+    <script>
+        document.addEventListener("deviceready", function () {
+            console.log("Device Ready");
+
+            // 1. Start Node Server
+            nodejs.start("server.js", (err) => {
+                if (err) console.error("Node start error:", err);
+                else console.log("Node started successfully.");
+            });
+
+            // 2. Override Fetch to use localhost
+            const originalFetch = window.fetch;
+            window.fetch = function (url, opts) {
+                // If url is relative like "/api/...", prepend localhost
+                if (typeof url === 'string' && url.startsWith("/")) {
+                    url = "http://localhost:3000" + url;
+                }
+                return originalFetch(url, opts);
+            };
+
+            // 3. Poll for Server Ready
+            const checkServer = setInterval(() => {
+                // Use absolute URL here to be safe
+                fetch("http://localhost:3000/api/info")
+                    .then(r => {
+                        if (r.ok) {
+                            clearInterval(checkServer);
+                            console.log("Server detected!");
+                            if (typeof startApp === 'function') {
+                                // Start the UI logic
+                                startApp();
+                            }
+                        }
+                    })
+                    .catch(e => console.log("Waiting for server..."));
+            }, 1000);
+        }, false);
     </script>
 </body>
-</html>
