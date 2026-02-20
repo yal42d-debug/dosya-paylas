@@ -33,7 +33,7 @@ const serverUrl = `http://${localIp}:${PORT}`;
 
 // Middleware
 app.use(cors());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 // Content-Disposition Fix for UTF-8
@@ -103,12 +103,40 @@ app.get('/api/download/:filename', (req, res) => {
   else res.status(404).send('Not found');
 });
 
+// Alias for web interface
+app.get('/download/:filename', (req, res) => {
+  const filePath = path.join(UPLOAD_DIR, req.params.filename);
+  if (fs.existsSync(filePath)) res.download(filePath);
+  else res.status(404).send('Not found');
+});
+
 app.delete('/api/files/:filename', (req, res) => {
   const filePath = path.join(UPLOAD_DIR, req.params.filename);
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
     res.json({ message: 'Deleted' });
   } else res.status(404).send('Not found');
+});
+
+// Tunnel Management
+app.get('/api/tunnel/status', (req, res) => {
+  res.json({ running: !!currentTunnelUrl, url: currentTunnelUrl });
+});
+
+app.post('/api/tunnel/start', async (req, res) => {
+  if (currentTunnelUrl) return res.json({ message: 'Already running', url: currentTunnelUrl });
+  try {
+    const tunnel = await localtunnel({ port: PORT });
+    currentTunnelUrl = tunnel.url;
+    res.json({ message: 'Started', url: currentTunnelUrl });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/tunnel/stop', (req, res) => {
+  currentTunnelUrl = null;
+  res.json({ message: 'Stopped' });
 });
 
 // START LOGIC
@@ -123,7 +151,7 @@ async function startServer() {
     }
   }
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.clear();
     console.log('===================================================');
     console.log('🚀 DOSYA PAYLAŞIM SUNUCUSU AKTİF');
