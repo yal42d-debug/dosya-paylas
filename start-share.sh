@@ -32,6 +32,10 @@ TMP_DIR=$(mktemp -d)
 echo -e "${BLUE}📥 Araç indiriliyor...${NC}"
 curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "$TMP_DIR/share-cli.js"
 
+# Bağımlılığı kur (Opsiyonel ama QR için gerekli)
+cd "$TMP_DIR"
+npm install qrcode-terminal &> /dev/null
+
 if [ -f "$TMP_DIR/share-cli.js" ]; then
     node "$TMP_DIR/share-cli.js" < /dev/tty
 else

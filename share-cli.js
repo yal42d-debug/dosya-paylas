@@ -5,7 +5,12 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 const readline = require('readline');
-const qrcodeTerminal = require('qrcode-terminal');
+let qrcodeTerminal;
+try {
+    qrcodeTerminal = require('qrcode-terminal');
+} catch (e) {
+    // qrcode-terminal is optional
+}
 
 // --- CONFIG ---
 const CONFIG_PATH = path.join(process.env.HOME || process.env.USERPROFILE, '.share-cli-config.json');
@@ -212,12 +217,20 @@ async function mainMenu() {
 
                 console.log(`\n${colors.yellow}🏠 YEREL AĞ BAĞLANTISI:${colors.reset}`);
                 console.log(`${info.localUrl}`);
-                qrcodeTerminal.generate(info.localUrl, { small: true });
+                if (qrcodeTerminal) {
+                    qrcodeTerminal.generate(info.localUrl, { small: true });
+                } else {
+                    console.log(`${colors.cyan}(QR Kodu için: npm install qrcode-terminal)${colors.reset}`);
+                }
 
                 if (info.tunnelUrl) {
                     console.log(`\n${colors.yellow}🌍 İNTERNET/TÜNEL BAĞLANTISI:${colors.reset}`);
                     console.log(`${info.tunnelUrl}`);
-                    qrcodeTerminal.generate(info.tunnelUrl, { small: true });
+                    if (qrcodeTerminal) {
+                        qrcodeTerminal.generate(info.tunnelUrl, { small: true });
+                    } else {
+                        console.log(`${colors.cyan}(QR Kodu için: npm install qrcode-terminal)${colors.reset}`);
+                    }
                 }
                 await question("\nDevam etmek için Enter...");
             }
