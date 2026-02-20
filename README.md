@@ -7,7 +7,7 @@ Bu proje, yerel ağda ve internet üzerinde cihazlar arası (APK'dan APK'ya, Web
 Eğer projenin yüklü olmadığı bir bilgisayardaysanız ve kendi sunucunuza bağlanıp dosya yüklemek/indirmek istiyorsanız terminale şu komutu yapıştırmanız yeterlidir:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/start-share.sh | bash
+curl -sL https://yal42d-debug.github.io/dosya-paylas/start-share.sh | bash
 ```
 
 ## ✨ Özellikler
