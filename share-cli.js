@@ -178,7 +178,7 @@ async function mainMenu() {
         console.log(`${colors.green}1.${colors.reset} Dosyaları Listele`);
         console.log(`${colors.green}2.${colors.reset} Dosya İndir`);
         console.log(`${colors.green}3.${colors.reset} Dosya Yükle`);
-        console.log(`${colors.blue}4.${colors.reset} Tünel/Sunucu Adresi Değiştir`);
+        console.log(`${colors.blue}4.${colors.reset} Başka Sunucuya Bağlan (Örn: Telefonun IP Adresini Gir)`);
         console.log(`${colors.blue}5.${colors.reset} Paylaşılan Klasörü Değiştir (Sunucuda)`);
         console.log(`${colors.yellow}6.${colors.reset} Sunucu Bilgileri (QR Kodları)`);
         console.log(`${colors.red}7.${colors.reset} Güle Güle (Çıkış)`);

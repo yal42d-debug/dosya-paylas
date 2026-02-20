@@ -337,6 +337,13 @@
                 Dosya Paylaş
             </h1>
             <div style="display: flex; gap: 8px;">
+                <button class="icon-btn hidden" id="local-btn" onclick="resetToLocal()"
+                    title="Yerel Dosyalar (Telefona Dön)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </button>
                 <button class="icon-btn" onclick="startQrScan()" title="QR Oku">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
@@ -352,7 +359,7 @@
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
                 </button>
-                <button class="icon-btn" onclick="location.href='/download-app'" title="Kaynak İndir">
+                <button class="icon-btn" onclick="downloadApp()" title="Kaynak İndir">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="7 10 12 15 17 10"></polyline>
@@ -660,7 +667,7 @@
                                 </div>
                             </div>
                             <div>
-                                <button class="action-btn" onclick="location.href= BASE_URL + '/download/${encodeURIComponent(file.name)}'">
+                                <button class="action-btn" onclick="downloadFile('${encodeURIComponent(file.name)}')">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 </button>
                                 <button class="action-btn delete-btn" onclick="deleteFile('${encodeURIComponent(file.name)}')">
@@ -863,8 +870,32 @@
                 });
         }
 
-        // QR Scanner Logic
+        // Download and App State Logic
         let BASE_URL = "http://localhost:3000";
+
+        function resetToLocal() {
+            BASE_URL = "http://localhost:3000";
+            document.getElementById('local-btn').classList.add('hidden');
+            startApp();
+        }
+
+        function downloadFile(filename) {
+            const url = BASE_URL + '/download/' + filename;
+            if (window.cordova) {
+                window.open(url, '_system');
+            } else {
+                window.location.href = url;
+            }
+        }
+
+        function downloadApp() {
+            const url = BASE_URL + '/download-app';
+            if (window.cordova) {
+                window.open(url, '_system');
+            } else {
+                window.location.href = url;
+            }
+        }
 
         function startQrScan() {
             if (!window.cordova || !cordova.plugins || !cordova.plugins.barcodeScanner) {
@@ -888,17 +919,17 @@
                                     .then(data => {
                                         if (data.ip || data.localUrl) {
                                             BASE_URL = targetUrl;
+                                            document.getElementById('local-btn').classList.remove('hidden');
                                             alert("Bağlantı Başarılı! Artık bu sunucudaki dosyaları görüyorsunuz.");
                                             startApp(); // Refresh UI with new BASE_URL
                                         } else {
-                                            window.open(targetUrl, '_blank');
+                                            alert("Sunucu anlaşılamadı. Dış bağlantı olarak açılıyor.");
+                                            window.open(targetUrl, '_system');
                                         }
                                     })
                                     .catch(err => {
                                         console.error("Connection failed", err);
                                         alert("Sunucuya bağlanılamadı. Cihazların aynı Wi-Fi ağında olduğundan emin olun.");
-                                        // Still try to open in browser as fallback
-                                        window.open(targetUrl, '_blank');
                                     });
                             }
                         } else {
