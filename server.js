@@ -110,6 +110,19 @@ app.get('/download/:filename', (req, res) => {
   else res.status(404).send('Not found');
 });
 
+// Serve APK for web users
+app.get('/download-apk', (req, res) => {
+  const apkPath = path.join(process.env.HOME || process.env.USERPROFILE, 'Desktop', 'Dosya_Paylas_Guncel.apk');
+  if (fs.existsSync(apkPath)) {
+    res.download(apkPath, 'Dosya_Paylas.apk');
+  } else {
+    // Fallback search in project dir
+    const localApk = path.join(__dirname, 'Dosya_Paylas_Guncel.apk');
+    if (fs.existsSync(localApk)) res.download(localApk, 'Dosya_Paylas.apk');
+    else res.status(404).send('APK dosyası sunucuda bulunamadı. Lütfen önce derleyin.');
+  }
+});
+
 app.delete('/api/files/:filename', (req, res) => {
   const filePath = path.join(UPLOAD_DIR, req.params.filename);
   if (fs.existsSync(filePath)) {
