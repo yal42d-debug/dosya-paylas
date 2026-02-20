@@ -56,8 +56,7 @@ else
     echo -e "${RED}❌ Araç indirilemedi. Lütfen internet bağlantınızı kontrol edin.${NC}"
 fi
 
-# Temizlik (Arka plandaki sunucuyu kapatmak isterseniz kill komutu eklenebilir, 
-# ancak genellikle açık kalması tercih edilir.)
-# Arka plandaki işleri (server) öldürmeyelim ki bağlantı kopmasın.
-rm share-cli.js server.js &> /dev/null
+# Çalışma dizinine geri dön (geçici klasörden kurtulmak için değil, orada çalışmak güvenli olduğu için)
+rm share-cli.js &> /dev/null
+echo -e "${GREEN}✅ İşlem tamamlandı.${NC}"
 
