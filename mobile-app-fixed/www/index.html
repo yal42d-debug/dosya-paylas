@@ -366,13 +366,7 @@
                         <polyline points="9 14 12 17 15 14"></polyline>
                     </svg>
                 </button>
-                <button class="icon-btn" onclick="downloadApp()" title="Kaynak Kodu İndir (ZIP)">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                </button>
+
             </div>
         </header>
 
@@ -938,28 +932,7 @@
             }
         }
 
-        function downloadApp() {
-            const url = BASE_URL + '/download-app';
-            if (window.cordova && window.FileTransfer) {
-                const targetPath = getDownloadDir() + "dosya-share-app.zip";
-                alert("Kaynak kod .zip olarak telefona indiriliyor...");
-                const ft = new FileTransfer();
-                ft.download(url, targetPath, function (entry) {
-                    if (cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
-                        cordova.plugins.notification.local.schedule({
-                            title: 'İndirme Tamamlandı',
-                            text: 'dosya-share-app.zip başarıyla indirildi.'
-                        });
-                    } else {
-                        alert("İndirme Tamamlandı:\ndosya-share-app.zip");
-                    }
-                }, function (err) {
-                    alert("Hata: " + err.code);
-                }, true);
-            } else {
-                window.location.href = url;
-            }
-        }
+
 
         // --- Downloads Folder UI ---
         function openDownloadsModal() {
