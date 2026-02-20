@@ -27,14 +27,6 @@ const colors = {
     red: "\x1b[31m"
 };
 
-function printBanner() {
-    console.clear();
-    console.log(`${colors.cyan}${colors.bright}==========================================`);
-    console.log(`🚀 SHARE-CLI TERMINAL ARAYÜZÜ v2.0`);
-    console.log(`==========================================${colors.reset}`);
-    console.log(`${colors.yellow}📡 Bağlı Sunucu:${colors.reset} ${config.apiBase}\n`);
-}
-
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -48,7 +40,17 @@ async function request(method, path, data = null, isDownload = false) {
         try {
             const url = new URL(path, config.apiBase);
             const protocol = url.protocol === 'https:' ? https : http;
-            const options = { method, headers: { 'Bypass-Tunnel-Reminder': 'true' } };
+            const options = {
+                method,
+                headers: {
+                    'Bypass-Tunnel-Reminder': 'true'
+                }
+            };
+
+            if (data && !isDownload) {
+                options.headers['Content-Type'] = 'application/json';
+            }
+
             const req = protocol.request(url, options, (res) => {
                 if (isDownload) return resolve(res);
                 let body = '';
@@ -56,6 +58,7 @@ async function request(method, path, data = null, isDownload = false) {
                 res.on('end', () => { try { resolve(JSON.parse(body)); } catch (e) { resolve(body); } });
             });
             req.on('error', reject);
+            if (data && !isDownload) req.write(JSON.stringify(data));
             req.end();
         } catch (e) { reject(e); }
     });
@@ -128,16 +131,33 @@ async function handleUpload() {
     await question("\nDevam etmek için Enter...");
 }
 
+// --- BANNER UPDATE ---
+async function printBanner() {
+    console.clear();
+    let shareDir = "Bilinmiyor";
+    try {
+        const info = await request('GET', '/api/info');
+        shareDir = info.shareDir || "Varsayılan (uploads)";
+    } catch (e) { }
+
+    console.log(`${colors.cyan}${colors.bright}==========================================`);
+    console.log(`🚀 SHARE-CLI TERMINAL ARAYÜZÜ v2.0`);
+    console.log(`==========================================${colors.reset}`);
+    console.log(`${colors.yellow}📡 Sunucu:   ${colors.reset} ${config.apiBase}`);
+    console.log(`${colors.yellow}📂 Klasör:   ${colors.reset} ${shareDir}\n`);
+}
+
 // --- MAIN LOOP ---
 async function mainMenu() {
     while (true) {
-        printBanner();
+        await printBanner();
         console.log(`${colors.bright}MENÜ:${colors.reset}`);
         console.log(`1. Dosyaları Listele`);
         console.log(`2. Dosya İndir`);
         console.log(`3. Dosya Yükle`);
         console.log(`4. Tünel/Sunucu Adresi Değiştir`);
-        console.log(`5. Çıkış`);
+        console.log(`5. Paylaşılan Klasörü Değiştir (Sunucuda)`);
+        console.log(`6. Çıkış`);
 
         const choice = await question(`\n${colors.magenta}Seçiminiz: ${colors.reset}`);
 
@@ -153,7 +173,19 @@ async function mainMenu() {
                     console.log(`${colors.green}Adres güncellendi!${colors.reset}`);
                 }
             }
-            else if (choice === '5') { console.log("Güle güle!"); process.exit(0); }
+            else if (choice === '5') {
+                const newPath = await question(`Paylaşılacak klasör yolu (örn: /Users/ad/Desktop): `);
+                if (newPath) {
+                    const res = await request('POST', '/api/set-dir', { dir: newPath });
+                    if (res.shareDir) {
+                        console.log(`${colors.green}Klasör değiştirildi: ${res.shareDir}${colors.reset}`);
+                    } else {
+                        console.log(`${colors.red}Hata: Klasör değiştirilemedi.${colors.reset}`);
+                    }
+                }
+                await question("\nEnter...");
+            }
+            else if (choice === '6') { console.log("Güle güle!"); process.exit(0); }
         } catch (e) {
             console.log(`${colors.red}❌ Hata: ${e.message}${colors.reset}`);
             await question("\nEnter...");

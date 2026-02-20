@@ -12,11 +12,18 @@ const https = require('https');
 
 const app = express();
 const PORT = 3000;
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
 
-// Ensure upload directory exists
+// Shared directory logic
+let UPLOAD_DIR = path.join(__dirname, 'uploads');
+const dirArgIndex = process.argv.indexOf('--dir');
+if (dirArgIndex !== -1 && process.argv[dirArgIndex + 1]) {
+  const targetDir = process.argv[dirArgIndex + 1];
+  UPLOAD_DIR = path.isAbsolute(targetDir) ? targetDir : path.join(process.cwd(), targetDir);
+}
+
+// Ensure directory exists
 if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR);
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
 // Global state
@@ -50,11 +57,30 @@ app.get('/api/info', async (req, res) => {
       qrCode: qrCodeDataUrl,
       ip: localIp,
       port: PORT,
-      isTunnel: !!currentTunnelUrl
+      isTunnel: !!currentTunnelUrl,
+      shareDir: UPLOAD_DIR
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate QR code' });
   }
+});
+
+app.post('/api/set-dir', (req, res) => {
+  const { dir } = req.body;
+  if (!dir) return res.status(400).json({ error: 'Directory path is required' });
+
+  const newDir = path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir);
+  if (!fs.existsSync(newDir)) {
+    try {
+      fs.mkdirSync(newDir, { recursive: true });
+    } catch (e) {
+      return res.status(500).json({ error: 'Could not create directory' });
+    }
+  }
+
+  UPLOAD_DIR = newDir;
+  console.log(`📂 Paylaşılan klasör değiştirildi: ${UPLOAD_DIR}`);
+  res.json({ message: 'Success', shareDir: UPLOAD_DIR });
 });
 
 app.get('/api/files', (req, res) => {
