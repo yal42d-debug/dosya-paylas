@@ -158,18 +158,18 @@ app.post('/api/tunnel/stop', (req, res) => {
 
 // START LOGIC
 async function startServer() {
-  if (process.argv.includes('--tunnel')) {
-    console.log('📡 Tünel başlatılıyor...');
-    try {
-      const tunnel = await localtunnel({ port: PORT });
-      tunnel.on('error', (err) => {
-        console.error('❌ Tünel hatası:', err.message);
-        currentTunnelUrl = null;
-      });
-      currentTunnelUrl = tunnel.url;
-    } catch (e) {
-      console.error('❌ Tünel hatası:', e.message);
-    }
+  // Her zaman tünel başlat (Kullanıcının isteği üzerine)
+  console.log('📡 Tünel/Dış Bağlantı başlatılıyor...');
+  try {
+    const tunnel = await localtunnel({ port: PORT });
+    tunnel.on('error', (err) => {
+      console.error('❌ Tünel hatası:', err.message);
+      currentTunnelUrl = null;
+    });
+    currentTunnelUrl = tunnel.url;
+    console.log('✅ Tünel aktif:', currentTunnelUrl);
+  } catch (e) {
+    console.error('❌ Tünel başlatılamadı:', e.message);
   }
 
   app.listen(PORT, '0.0.0.0', () => {
