@@ -359,7 +359,14 @@
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
                 </button>
-                <button class="icon-btn" onclick="downloadApp()" title="Kaynak İndir">
+                <button class="icon-btn" onclick="openDownloadsModal()" title="İndirilenler">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        <line x1="12" y1="11" x2="12" y2="17"></line>
+                        <polyline points="9 14 12 17 15 14"></polyline>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="downloadApp()" title="Kaynak Kodu İndir (ZIP)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="7 10 12 15 17 10"></polyline>
@@ -477,6 +484,19 @@
             </div>
 
             <button class="modal-close" style="margin-top: 20px;" onclick="closeQrModal()">Kapat</button>
+        </div>
+    </div>
+
+    <!-- Downloads Modal -->
+    <div class="modal" id="downloads-modal">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <h3 style="margin-top: 0; color: var(--primary-color);">İndirilen Dosyalar</h3>
+            <p style="font-size: 0.8rem; color: var(--secondary-text);">Telefona indirilen dosyalarınız:</p>
+            <ul class="file-list" id="downloads-list" style="margin-top: 15px; text-align: left;">
+                <!-- Populated via JS -->
+            </ul>
+            <button class="modal-close" style="width: 100%; margin-top: 20px;"
+                onclick="closeDownloadsModal()">Kapat</button>
         </div>
     </div>
 
@@ -879,10 +899,40 @@
             startApp();
         }
 
+        function getDownloadDir() {
+            if (cordova.file.externalDataDirectory) return cordova.file.externalDataDirectory;
+            return cordova.file.dataDirectory;
+        }
+
         function downloadFile(filename) {
             const url = BASE_URL + '/download/' + filename;
-            if (window.cordova) {
-                window.open(url, '_system');
+            if (window.cordova && window.FileTransfer) {
+                const targetPath = getDownloadDir() + decodeURIComponent(filename);
+
+                // Show notification briefly via visual or toast if we had one, but we'll use local notification on end
+                const ft = new FileTransfer();
+
+                ft.download(
+                    url,
+                    targetPath,
+                    function (entry) {
+                        try {
+                            if (cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
+                                cordova.plugins.notification.local.schedule({
+                                    title: 'İndirme Tamamlandı',
+                                    text: decodeURIComponent(filename) + ' başarıyla indirildi.',
+                                    foreground: true
+                                });
+                            } else {
+                                alert("İndirme Tamamlandı:\n" + decodeURIComponent(filename));
+                            }
+                        } catch (e) { }
+                    },
+                    function (error) {
+                        alert("İndirme hatası: " + error.code);
+                    },
+                    true // trustAllHosts
+                );
             } else {
                 window.location.href = url;
             }
@@ -890,12 +940,101 @@
 
         function downloadApp() {
             const url = BASE_URL + '/download-app';
-            if (window.cordova) {
-                window.open(url, '_system');
+            if (window.cordova && window.FileTransfer) {
+                const targetPath = getDownloadDir() + "dosya-share-app.zip";
+                alert("Kaynak kod .zip olarak telefona indiriliyor...");
+                const ft = new FileTransfer();
+                ft.download(url, targetPath, function (entry) {
+                    if (cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
+                        cordova.plugins.notification.local.schedule({
+                            title: 'İndirme Tamamlandı',
+                            text: 'dosya-share-app.zip başarıyla indirildi.'
+                        });
+                    } else {
+                        alert("İndirme Tamamlandı:\ndosya-share-app.zip");
+                    }
+                }, function (err) {
+                    alert("Hata: " + err.code);
+                }, true);
             } else {
                 window.location.href = url;
             }
         }
+
+        // --- Downloads Folder UI ---
+        function openDownloadsModal() {
+            if (!window.cordova) return alert("Bu özellik sadece mobil uygulamada çalışır. PC'de tarayıcı indirmelerini kontrol edin.");
+            document.getElementById('downloads-modal').classList.add('open');
+            loadDownloadedFiles();
+        }
+
+        function closeDownloadsModal() {
+            document.getElementById('downloads-modal').classList.remove('open');
+        }
+
+        function loadDownloadedFiles() {
+            const dlList = document.getElementById('downloads-list');
+            dlList.innerHTML = '<li style="text-align:center; padding: 10px; color: var(--secondary-text);">Yükleniyor...</li>';
+
+            window.resolveLocalFileSystemURL(getDownloadDir(), function (dirEntry) {
+                var dirReader = dirEntry.createReader();
+                dirReader.readEntries(function (entries) {
+                    dlList.innerHTML = '';
+                    if (entries.length === 0) {
+                        dlList.innerHTML = '<li style="text-align:center; padding: 10px; color: var(--secondary-text);">İndirilen dosya yok.</li>';
+                        return;
+                    }
+                    entries.forEach(function (entry) {
+                        if (entry.isFile) {
+                            const li = document.createElement('li');
+                            li.className = 'file-item';
+                            li.innerHTML = `
+                                <div class="file-info" style="flex: 1; overflow: hidden; padding-right: 10px;">
+                                    <span class="file-name" style="word-break: break-all;">${entry.name}</span>
+                                </div>
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="action-btn" onclick="openOfflineFile('${entry.nativeURL}')" style="color: var(--success-color);">
+                                        Aç
+                                    </button>
+                                    <button class="action-btn delete-btn" onclick="deleteOfflineFile('${entry.name}')">
+                                        Sil
+                                    </button>
+                                </div>
+                            `;
+                            dlList.appendChild(li);
+                        }
+                    });
+                }, function (err) {
+                    dlList.innerHTML = '<li style="text-align:center;">Hata: ' + err.code + '</li>';
+                });
+            }, function (err) {
+                dlList.innerHTML = '<li style="text-align:center;">Hata: ' + err.code + '</li>';
+            });
+        }
+
+        function openOfflineFile(fileUrl) {
+            cordova.plugins.fileOpener2.open(
+                fileUrl,
+                // We let the OS determine mime type from extension
+                '*/*',
+                {
+                    error: function (e) { alert('Açılırken hata oluştu: ' + e.message + '\\n(Cihazda bu dosyayı açacak uygulama olmayabilir)'); },
+                    success: function () { }
+                }
+            );
+        }
+
+        function deleteOfflineFile(fileName) {
+            if (!confirm('Bu dosyayı cihazdan silmek istiyor musunuz?')) return;
+            window.resolveLocalFileSystemURL(getDownloadDir(), function (dirEntry) {
+                dirEntry.getFile(fileName, { create: false }, function (fileEntry) {
+                    fileEntry.remove(function () {
+                        loadDownloadedFiles();
+                    });
+                });
+            });
+        }
+
 
         function startQrScan() {
             if (!window.cordova || !cordova.plugins || !cordova.plugins.barcodeScanner) {
