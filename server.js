@@ -28,8 +28,16 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 
 // Global state
 let currentTunnelUrl = null;
+let publicIp = 'Yükleniyor...';
 const localIp = ip.address();
 const serverUrl = `http://${localIp}:${PORT}`;
+
+// Fetch Public IP (for localtunnel bypass)
+https.get('https://api.ipify.org', (resp) => {
+  let data = '';
+  resp.on('data', (chunk) => data += chunk);
+  resp.on('end', () => { publicIp = data; });
+}).on("error", (err) => { console.error("IP Error: " + err.message); });
 
 // Middleware
 app.use(cors());
@@ -64,6 +72,7 @@ app.get('/api/info', async (req, res) => {
       localUrl: serverUrl,
       tunnelUrl: currentTunnelUrl,
       ip: localIp,
+      publicIp: publicIp,
       port: PORT,
       shareDir: UPLOAD_DIR
     });
@@ -200,7 +209,10 @@ async function startServer() {
     console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
     console.log(`📂 Klasör: ${UPLOAD_DIR}`);
     console.log(`🏠 Yerel Ağ: ${serverUrl}`);
-    if (currentTunnelUrl) console.log(`🌍 İnternet: ${currentTunnelUrl}`);
+    if (currentTunnelUrl) {
+      console.log(`🌍 İnternet: ${currentTunnelUrl}`);
+      console.log(`🔑 Tünel Şifresi (Public IP): ${publicIp}`);
+    }
     console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
 
     console.log('\n\x1b[33m%s\x1b[0m', '📲 YEREL AĞ QR KODU (Ev/Ofis İçi):');
