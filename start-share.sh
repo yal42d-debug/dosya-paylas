@@ -44,11 +44,12 @@ SERVER_INFO=$(curl -s http://localhost:3000/api/info)
 if [ $? -ne 0 ]; then
     SHOULD_RESTART=true
 else
-    # Sunucu çalışıyor ama tünel yoksa veya eski sürümse restart et
-    HAS_TUNNEL=$(echo $SERVER_INFO | grep -o 'tunnelUrl')
+    # Sunucu çalışıyor ama tünel yoksa (null ise) veya eski sürümse restart et
+    HAS_TUNNEL=$(echo $SERVER_INFO | grep -o '"tunnelUrl":"http')
     if [ -z "$HAS_TUNNEL" ]; then
-        echo -e "${YELLOW}🔄 Mevcut sunucuda tünel desteği yok, güncelleniyor...${NC}"
+        echo -e "${YELLOW}🔄 Mevcut sunucuda aktif tünel yok, güncelleniyor...${NC}"
         lsof -ti :3000 | xargs kill -9 &> /dev/null
+        sleep 1
         SHOULD_RESTART=true
     fi
 fi
@@ -59,8 +60,9 @@ if [ "$SHOULD_RESTART" = true ]; then
     # Sunucuyu arka planda başlat
     node server.js > server.log 2>&1 &
     # Tünelin ve sunucunun tam açılması için bekle
-    echo -en "${BLUE}⏳ Sunucu ve İnternet Bağlantısı kuruluyor...${NC}"
-    for i in {1..5}; do echo -n "."; sleep 1; done
+    echo -e "${BLUE}⏳ Sunucu ve İnternet Bağlantısı kuruluyor...${NC}"
+    echo -e "${BLUE}   (Bypass-Tunnel-Reminder aktif ediliyor...)${NC}"
+    for i in {1..8}; do echo -n "."; sleep 1; done
     echo -e ""
 fi
 
