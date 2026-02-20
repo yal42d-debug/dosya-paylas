@@ -1031,9 +1031,14 @@
                             const targetUrl = scannedText.endsWith('/') ? scannedText.slice(0, -1) : scannedText;
 
                             if (confirm("Bu sunucuya bağlanmak istiyor musunuz?\n" + targetUrl)) {
-                                // Test connection to see if it's our server
-                                fetch(targetUrl + "/api/info")
-                                    .then(res => res.json())
+                                // Test connection to see if it's our server with Bypass Header
+                                fetch(targetUrl + "/api/info", {
+                                    headers: { "Bypass-Tunnel-Reminder": "true" }
+                                })
+                                    .then(res => {
+                                        if (!res.ok && res.status === 401) throw new Error("Tunnel_Auth_Required");
+                                        return res.json();
+                                    })
                                     .then(data => {
                                         if (data.ip || data.localUrl) {
                                             BASE_URL = targetUrl;
@@ -1047,7 +1052,11 @@
                                     })
                                     .catch(err => {
                                         console.error("Connection failed", err);
-                                        alert("Sunucuya bağlanılamadı. Cihazların aynı Wi-Fi ağında olduğundan emin olun.");
+                                        if (targetUrl.includes('loca.lt')) {
+                                            alert("Tünel bağlantısı başarısız oldu. Lütfen önce tarayıcı üzerinden Public IP adresini girerek tüneli aktif edin (Terminalde yazan numara).");
+                                        } else {
+                                            alert("Sunucuya bağlanılamadı. Cihazların aynı ağda olduğundan emin olun.");
+                                        }
                                     });
                             }
                         } else {
