@@ -127,6 +127,10 @@ app.post('/api/tunnel/start', async (req, res) => {
   if (currentTunnelUrl) return res.json({ message: 'Already running', url: currentTunnelUrl });
   try {
     const tunnel = await localtunnel({ port: PORT });
+    tunnel.on('error', (err) => {
+      console.error('❌ Tünel hatası:', err.message);
+      currentTunnelUrl = null;
+    });
     currentTunnelUrl = tunnel.url;
     res.json({ message: 'Started', url: currentTunnelUrl });
   } catch (e) {
@@ -145,6 +149,10 @@ async function startServer() {
     console.log('📡 Tünel başlatılıyor...');
     try {
       const tunnel = await localtunnel({ port: PORT });
+      tunnel.on('error', (err) => {
+        console.error('❌ Tünel hatası:', err.message);
+        currentTunnelUrl = null;
+      });
       currentTunnelUrl = tunnel.url;
     } catch (e) {
       console.error('❌ Tünel hatası:', e.message);

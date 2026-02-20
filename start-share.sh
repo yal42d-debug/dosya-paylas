@@ -32,9 +32,20 @@ TMP_DIR=$(mktemp -d)
 echo -e "${BLUE}📦 Bağımlılıklar hazırlanıyor...${NC}"
 cd "$TMP_DIR"
 
-# npm projesi başlat ve gerekli paketi kur
+# npm projesi başlat ve gerekli paketleri kur
 npm init -y &> /dev/null
-npm install qrcode-terminal &> /dev/null
+echo -e "${BLUE}📦 Bağımlılıklar yükleniyor...${NC}"
+npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel &> /dev/null
+
+# Sunucu kontrolü ve başlatma
+if ! curl -s http://localhost:3000/api/info &> /dev/null; then
+    echo -e "${YELLOW}🌐 Sunucu kapalı, otomatik başlatılıyor...${NC}"
+    curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(date +%s)" -o "server.js"
+    # Sunucuyu arka planda başlat
+    node server.js > server.log 2>&1 &
+    # Sunucunun açılması için kısa bir bekleme
+    sleep 2
+fi
 
 echo -e "${BLUE}📥 Araç indiriliyor...${NC}"
 curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "share-cli.js"
@@ -45,5 +56,8 @@ else
     echo -e "${RED}❌ Araç indirilemedi. Lütfen internet bağlantınızı kontrol edin.${NC}"
 fi
 
-# Temizlik
-rm -rf "$TMP_DIR"
+# Temizlik (Arka plandaki sunucuyu kapatmak isterseniz kill komutu eklenebilir, 
+# ancak genellikle açık kalması tercih edilir.)
+# Arka plandaki işleri (server) öldürmeyelim ki bağlantı kopmasın.
+rm share-cli.js server.js &> /dev/null
+

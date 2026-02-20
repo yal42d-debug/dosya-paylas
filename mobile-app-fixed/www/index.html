@@ -337,6 +337,13 @@
                 Dosya Paylaş
             </h1>
             <div style="display: flex; gap: 8px;">
+                <button class="icon-btn" onclick="startQrScan()" title="QR Oku">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                        </path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </button>
                 <button class="icon-btn" onclick="openQrModal()" title="QR Menüsü">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -345,8 +352,7 @@
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
                 </button>
-                <button class="icon-btn" onclick="location.href='http://localhost:3000/download-app'"
-                    title="Kaynak İndir">
+                <button class="icon-btn" onclick="location.href='/download-app'" title="Kaynak İndir">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="7 10 12 15 17 10"></polyline>
@@ -856,6 +862,54 @@
                     btn.disabled = false;
                 });
         }
+
+        // QR Scanner Logic
+        function startQrScan() {
+            if (!window.cordova || !cordova.plugins || !cordova.plugins.barcodeScanner) {
+                alert("QR Tarayıcı sadece mobil uygulamada (Android/iOS) çalışır.");
+                return;
+            }
+
+            cordova.plugins.barcodeScanner.scan(
+                function (result) {
+                    if (!result.cancelled) {
+                        const scannedText = result.text;
+                        console.log("Scanned:", scannedText);
+
+                        // If it's a URL, offer to navigate or use it
+                        if (scannedText.startsWith('http')) {
+                            if (confirm("Şu adrese bağlanmak istiyor musunuz?\n" + scannedText)) {
+                                if (scannedText.includes('/api/')) {
+                                    // Logic for internal API calls if needed
+                                    alert("API adresi algılandı: " + scannedText);
+                                } else {
+                                    window.open(scannedText, '_blank');
+                                }
+                            }
+                        } else {
+                            alert("QR İçeriği:\n" + scannedText);
+                        }
+                    }
+                },
+                function (error) {
+                    alert("Tarama hatası: " + error);
+                },
+                {
+                    preferFrontCamera: false,
+                    showFlipCameraButton: true,
+                    showTorchButton: true,
+                    torchOn: false,
+                    saveHistory: true,
+                    prompt: "QR Kodu çerçeve içine alın",
+                    resultDisplayDuration: 500,
+                    formats: "QR_CODE,PDF_417",
+                    orientation: "portrait",
+                    disableAnimations: true,
+                    disableSuccessBeep: false
+                }
+            );
+        }
+
     </script>
     <script src="cordova.js"></script>
     <script>
