@@ -33,7 +33,7 @@ echo -e "${BLUE}📥 Araç indiriliyor...${NC}"
 curl -sL https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js -o "$TMP_DIR/share-cli.js"
 
 if [ -f "$TMP_DIR/share-cli.js" ]; then
-    node "$TMP_DIR/share-cli.js"
+    node "$TMP_DIR/share-cli.js" < /dev/tty
 else
     echo -e "${RED}❌ Araç indirilemedi. Lütfen internet bağlantınızı kontrol edin.${NC}"
 fi
