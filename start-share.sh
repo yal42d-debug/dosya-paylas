@@ -29,15 +29,18 @@ fi
 
 # Geçici bir klasöre aracı indir ve çalıştır
 TMP_DIR=$(mktemp -d)
-echo -e "${BLUE}📥 Araç indiriliyor...${NC}"
-curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "$TMP_DIR/share-cli.js"
-
-# Bağımlılığı kur (Opsiyonel ama QR için gerekli)
+echo -e "${BLUE}📦 Bağımlılıklar hazırlanıyor...${NC}"
 cd "$TMP_DIR"
+
+# npm projesi başlat ve gerekli paketi kur
+npm init -y &> /dev/null
 npm install qrcode-terminal &> /dev/null
 
-if [ -f "$TMP_DIR/share-cli.js" ]; then
-    node "$TMP_DIR/share-cli.js" < /dev/tty
+echo -e "${BLUE}📥 Araç indiriliyor...${NC}"
+curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "share-cli.js"
+
+if [ -f "share-cli.js" ]; then
+    node "share-cli.js" < /dev/tty
 else
     echo -e "${RED}❌ Araç indirilemedi. Lütfen internet bağlantınızı kontrol edin.${NC}"
 fi
