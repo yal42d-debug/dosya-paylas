@@ -905,6 +905,11 @@
 
                 // Show notification briefly via visual or toast if we had one, but we'll use local notification on end
                 const ft = new FileTransfer();
+                const options = {
+                    headers: {
+                        "Bypass-Tunnel-Reminder": "true"
+                    }
+                };
 
                 ft.download(
                     url,
@@ -925,7 +930,8 @@
                     function (error) {
                         alert("İndirme hatası: " + error.code);
                     },
-                    true // trustAllHosts
+                    true, // trustAllHosts
+                    options
                 );
             } else {
                 window.location.href = url;
@@ -1080,9 +1086,19 @@
                 else console.log("Node started successfully.");
             });
 
-            // 2. Override Fetch to use BASE_URL
+            // 2. Override Fetch to use BASE_URL and bypass Localtunnel reminder
             const originalFetch = window.fetch;
             window.fetch = function (url, opts) {
+                opts = opts || {};
+                opts.headers = opts.headers || {};
+
+                // Add bypass header for Localtunnel
+                if (opts.headers instanceof Headers) {
+                    opts.headers.append('Bypass-Tunnel-Reminder', 'true');
+                } else {
+                    opts.headers['Bypass-Tunnel-Reminder'] = 'true';
+                }
+
                 // If url is relative like "/api/...", prepend BASE_URL
                 if (typeof url === 'string' && url.startsWith("/")) {
                     url = BASE_URL + url;
