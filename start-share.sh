@@ -27,6 +27,16 @@ then
     fi
 fi
 
-# Aracı indir ve çalıştır (GitHub'a yüklediğinizde bu linki GitHub logonuzla değiştirirsiniz)
-# Şimdilik lokaldekini çalıştıralım
-node share-cli.js
+# Geçici bir klasöre aracı indir ve çalıştır
+TMP_DIR=$(mktemp -d)
+echo -e "${BLUE}📥 Araç indiriliyor...${NC}"
+curl -sL https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js -o "$TMP_DIR/share-cli.js"
+
+if [ -f "$TMP_DIR/share-cli.js" ]; then
+    node "$TMP_DIR/share-cli.js"
+else
+    echo -e "${RED}❌ Araç indirilemedi. Lütfen internet bağlantınızı kontrol edin.${NC}"
+fi
+
+# Temizlik
+rm -rf "$TMP_DIR"
