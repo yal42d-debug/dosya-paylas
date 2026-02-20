@@ -1,0 +1,51 @@
+name: Build Android APK
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Cordova
+        run: npm install -g cordova
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Add Android Platform
+        working-directory: ./mobile-app
+        run: cordova platform add android
+
+      - name: Add Node.js Mobile Plugin
+        working-directory: ./mobile-app
+        run: cordova plugin add nodejs-mobile-cordova
+
+      - name: Install Node Modules for Backend
+        working-directory: ./mobile-app/www/nodejs-project
+        run: npm install
+
+      - name: Build APK (Release)
+        working-directory: ./mobile-app
+        run: cordova build android --release -- --packageType=apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: mobile-app/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk

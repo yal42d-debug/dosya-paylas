@@ -1,0 +1,19 @@
+{
+    "name": "share-cli",
+    "version": "1.0.0",
+    "description": "Terminal üzerinden dosya paylaşım aracı",
+    "main": "share-cli.js",
+    "bin": {
+        "share-cli": "./share-cli.js"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "file",
+        "share",
+        "cli"
+    ],
+    "author": "",
+    "license": "ISC"
+}

@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dosya Paylaşım Merkezi</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --secondary-text: #a0a0a0;
+            --primary-color: #3b82f6;
+            /* Blue */
+            --primary-hover: #2563eb;
+            --danger-color: #ef4444;
+            --border-color: #333;
+            --success-color: #10b981;
+            --toast-bg: rgba(30, 30, 30, 0.95);
+        }
+
+        /* Toast Notification Styles */
+        .toast {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--toast-bg);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+        }
+
+        .toast.show {
+            top: 20px;
+        }
+
+        .toast-icon {
+            color: var(--success-color);
+            width: 20px;
+            height: 20px;
+        }
+
+        .downloads-shortcut {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.2s;
+        }
+
+        .downloads-shortcut:active {
+            transform: scale(0.9);
+        }
+
+        /* Downloads Modal Styles */
+        .downloads-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .downloads-modal.open {
+            display: flex;
+        }
+
+        .downloads-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .download-item {
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 8px;
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .download-item-name {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .download-item-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            padding: 24px;
+            position: relative;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--secondary-text);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        /* Remote Control Section */
+        .tunnel-control {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tunnel-status {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #666;
+        }
+
+        .status-dot.active {
+            background-color: var(--success-color);
+            box-shadow: 0 0 8px var(--success-color);
+        }
+
+        .switch-btn {
+            background-color: var(--card-bg);
+            /* Default OFF state */
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .switch-btn.active {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        /* Upload Section */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            color: var(--secondary-text);
+            font-size: 0.9rem;
+        }
+
+        /* File List */
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .file-icon {
+            color: var(--secondary-text);
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .file-name-wrapper {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .file-name {
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 0.75rem;
+            color: var(--secondary-text);
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary-text);
+            padding: 6px;
+            border-radius: 6px;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .delete-btn:hover {
+            color: var(--danger-color);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Modal & Tabs */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px;
+            color: var(--secondary-text);
+            cursor: pointer;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .wifi-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .wifi-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            outline: none;
+        }
+
+        .generate-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>
+                <!-- File Icon -->
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+                Dosya Paylaş
+            </h1>
+            <div style="display: flex; gap: 8px;">
+                <button id="disconnect-btn" class="icon-btn" onclick="disconnectRemote()" title="Kendi Cihazıma Dön"
+                    style="display:none; color:var(--danger-color);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                        <line x1="12" y1="2" x2="12" y2="12"></line>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="scanDeviceQR()" title="Cihaza Bağlan (QR Tarat)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                        </path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="openQrModal()" title="QR Menüsü">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Remote Tunnel Control -->
+        <div class="tunnel-control">
+            <div class="tunnel-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Bağlantı Kapalı</span>
+            </div>
+            <button class="switch-btn" id="tunnel-btn" onclick="toggleTunnel()">Dışarı Aç</button>
+        </div>
+
+        <!-- Chat Section -->
+        <h3 style="font-size: 1rem; color: var(--secondary-text); margin: 24px 0 12px 0;">Mesajlaşma</h3>
+        <div class="chat-container"
+            style="border: 1px solid var(--border-color); border-radius: 12px; height: 200px; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 24px;">
+            <div id="chat-messages"
+                style="flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+            </div>
+            <div style="display: flex; border-top: 1px solid var(--border-color); padding: 8px;">
+                <input type="text" id="chat-input" placeholder="Mesaj..."
+                    style="flex: 1; background: transparent; border: none; color: white; padding: 8px; outline: none;">
+                <button onclick="sendMessage()"
+                    style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Gönder</button>
+            </div>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <input type="file" id="file-input" multiple hidden>
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <div class="upload-text">Dosya Yükle</div>
+        </div>
+
+        <h3 style="font-size: 1rem; color: var(--secondary-text); margin-bottom: 12px;">Dosyalar</h3>
+        <ul class="file-list" id="file-list">
+            <!-- JS will populate this -->
+        </ul>
+    </div>
+
+    <!-- Multi-Tab QR Modal -->
+    <div class="modal" id="qr-modal">
+        <div class="modal-content">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('local')">Lokal</button>
+                <button class="tab-btn" onclick="switchTab('wifi')">Wi-Fi</button>
+                <button class="tab-btn" onclick="switchTab('remote')">Uzaktan</button>
+            </div>
+
+            <!-- Local Tab -->
+            <div id="tab-local" class="tab-content active">
+                <img id="qr-local-img" src="" alt="Local QR" style="width: 200px; height: 200px; border-radius: 8px;">
+                <p style="color: var(--secondary-text); margin-top: 10px; font-size: 0.85rem;">Aynı Wi-Fi ağındakiler
+                    için</p>
+            </div>
+
+            <!-- Wi-Fi Tab -->
+            <div id="tab-wifi" class="tab-content">
+                <div class="wifi-form">
+                    <input type="text" id="wifi-ssid" class="wifi-input" placeholder="Wi-Fi Adı (SSID)">
+                    <input type="password" id="wifi-pass" class="wifi-input" placeholder="Wi-Fi Şifresi">
+                    <button class="generate-btn" onclick="generateWifiQr()">Wi-Fi QR Oluştur</button>
+                </div>
+                <img id="qr-wifi-img" src=""
+                    style="width: 200px; height: 200px; border-radius: 8px; display: none; margin-top: 12px; margin-left:auto; margin-right:auto;">
+            </div>
+
+            <!-- Remote Tab -->
+            <div id="tab-remote" class="tab-content">
+                <div id="remote-qr-container" style="display: none; text-align: center;">
+                    <img id="qr-remote-img" src="" alt="Remote QR"
+                        style="width: 200px; height: 200px; border-radius: 8px; border: 4px solid white;">
+                    <p style="color: var(--secondary-text); margin-top: 15px; font-size: 0.85rem; font-weight: 500;">
+                        Dünyanın Her Yerinden Erişim
+                    </p>
+                    <div id="remote-url-text"
+                        style="word-break: break-all; color: var(--text-color); background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; font-size: 0.85rem; margin-top: 10px; border: 1px solid var(--border-color);">
+                    </div>
+                </div>
+
+                <div id="remote-placeholder" style="padding: 20px; text-align: center; color: var(--secondary-text);">
+                    <div
+                        style="background: rgba(59, 130, 246, 0.1); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: var(--primary-color);">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                    </div>
+                    <p style="font-size: 0.95rem; font-weight: 600; color: var(--text-color); margin-bottom: 8px;">Uzak
+                        Erişim Kapalı</p>
+                    <p style="font-size: 0.8rem; line-height: 1.4;">Ana ekrandaki "Dışarı Aç" butonunu kullanarak
+                        internet üzerinden erişim linki oluşturabilirsiniz.</p>
+                </div>
+            </div>
+
+            <button class="modal-close" style="margin-top: 20px;" onclick="closeQrModal()">Kapat</button>
+        </div>
+    </div>
+
+    <!-- Downloads Shortcut -->
+    <div class="downloads-shortcut" onclick="openDownloadsFolder()" title="İndirilenler Klasörü">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            <line x1="12" y1="11" x2="12" y2="17"></line>
+            <polyline points="9 14 12 17 15 14"></polyline>
+        </svg>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast" class="toast">
+        <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span id="toast-message">Dosya indirildi!</span>
+    </div>
+
+    <!-- Local Downloads Modal -->
+    <div id="downloads-modal" class="downloads-modal">
+        <div class="downloads-header">
+            <h2 style="margin:0; font-size:1.2rem;">Telefondaki Dosyalar</h2>
+            <button class="icon-btn" onclick="closeDownloadsModal()"
+                style="color:white; font-size:1.5rem;">&times;</button>
+        </div>
+        <div id="local-files-list" style="flex:1; overflow-y:auto; padding-bottom:20px;">
+            <!-- Local files will be listed here -->
+        </div>
+        <div style="text-align:center; padding:10px; font-size:0.8rem; color:var(--secondary-text);">
+            Dosyalar 'Download' klasöründedir.
+        </div>
+    </div>
+
+    <script>
+        const fileListEl = document.getElementById('file-list');
+        const tunnelBtn = document.getElementById('tunnel-btn');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+
+        // State
+        let API_BASE = 'http://localhost:3000';
+        let isTunnelRunning = false;
+        let tunnelUrl = null;
+        let localQrData = null;
+        let isRemoteMode = false;
+
+        // Init
+        function startApp() {
+            console.log("Starting App UI v2.0 (Toasts & Shortcut)...");
+            fetchFiles();
+            checkTunnelStatus();
+            fetchInfo();
+            setInterval(checkTunnelStatus, 5000);
+            setInterval(fetchMessages, 2000);
+            setInterval(fetchFiles, 3000);
+        }
+
+        // --- Tabs Logic ---
+        function switchTab(tabName) {
+            // Update UI
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            // Activate selected
+            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'remote') {
+                updateRemoteTabUI();
+            }
+        }
+
+        function updateRemoteTabUI() {
+            const container = document.getElementById('remote-qr-container');
+            const placeholder = document.getElementById('remote-placeholder');
+
+            if (isTunnelRunning && tunnelUrl) {
+                container.style.display = 'block';
+                placeholder.style.display = 'none';
+                document.getElementById('remote-url-text').innerHTML = `
+                    ${tunnelUrl}<br>
+                    <span style="color: var(--danger-color); font-size: 0.75rem;">Şifre istenirse IP adresinizi girin:<br><strong>${tunnelPassword || 'Yükleniyor...'}</strong></span>
+                `;
+                generateQr(tunnelUrl, 'qr-remote-img');
+            } else {
+                container.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
+        }
+
+        function generateWifiQr() {
+            const ssid = document.getElementById('wifi-ssid').value.trim();
+            const pass = document.getElementById('wifi-pass').value.trim();
+
+            if (!ssid) return alert("Lütfen Wi-Fi adını girin.");
+
+            // Format: WIFI:T:WPA;S:mynetwork;P:mypass;;
+            const wifiStr = `WIFI:T:WPA;S:${ssid};P:${pass};;`;
+
+            const img = document.getElementById('qr-wifi-img');
+            img.style.display = 'block';
+            generateQr(wifiStr, 'qr-wifi-img');
+            document.getElementById('qr-wifi-img').style.display = 'block';
+        }
+
+        function generateQr(text, imgId) {
+            fetch(API_BASE + '/api/qr/custom', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const img = document.getElementById(imgId);
+                    if (img) img.src = data.qrCode;
+                })
+                .catch(err => console.error("QR Fail", err));
+        }
+
+        // --- Core Functions ---
+
+        function fetchInfo() {
+            console.log("Fetching server info...");
+            fetch(API_BASE + '/api/info')
+                .then(res => res.json())
+                .then(data => {
+                    console.log("Server info received:", data.url);
+                    localQrData = data.qrCode;
+                    const qrImg = document.getElementById('qr-local-img');
+                    if (qrImg) {
+                        qrImg.src = localQrData;
+                        console.log("Local QR updated, data len:", localQrData ? localQrData.length : 0);
+                    } else {
+                        console.error("qr-local-img element not found");
+                    }
+                })
+                .catch(e => console.error("Error fetching info:", e));
+        }
+
+        function checkTunnelStatus() {
+            fetch(API_BASE + '/api/tunnel/status')
+                .then(res => res.json())
+                .then(data => {
+                    isTunnelRunning = data.running;
+                    const oldUrl = tunnelUrl;
+                    tunnelUrl = data.url;
+                    if (data.password) {
+                        tunnelPassword = data.password;
+                    }
+                    updateTunnelUI(isTunnelRunning, tunnelUrl);
+
+                    if (document.getElementById('tab-remote').classList.contains('active')) {
+                        updateRemoteTabUI();
+                    }
+
+                    // If URL just arrived, refresh info to get QR
+                    if (isTunnelRunning && tunnelUrl && tunnelUrl !== 'Awaiting URL...' && oldUrl !== tunnelUrl) {
+                        fetchInfo();
+                    }
+                })
+                .catch(console.error);
+        }
+
+        function updateTunnelUI(running, url) {
+            const hasRealUrl = url && url !== 'Awaiting URL...';
+            if (running) {
+                statusDot.classList.add('active');
+                statusText.textContent = hasRealUrl ? "Online" : "Bağlanıyor...";
+                tunnelBtn.textContent = "Kapat";
+                tunnelBtn.classList.add('active');
+            } else {
+                statusDot.classList.remove('active');
+                statusText.textContent = "Offline";
+                tunnelBtn.textContent = "Dışarı Aç";
+                tunnelBtn.classList.remove('active');
+            }
+        }
+
+        let tunnelPassword = null;
+
+        function toggleTunnel() {
+            tunnelBtn.disabled = true;
+            tunnelBtn.style.opacity = "0.5";
+
+            const endpoint = isTunnelRunning ? '/api/tunnel/stop' : '/api/tunnel/start';
+
+            fetch(API_BASE + endpoint, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.password) {
+                        tunnelPassword = data.password;
+                    }
+                    setTimeout(checkTunnelStatus, 1500);
+                })
+                .catch(err => {
+                    alert('Hata oluştu');
+                })
+                .finally(() => {
+                    tunnelBtn.disabled = false;
+                    tunnelBtn.style.opacity = "1";
+                });
+        }
+
+        function openQrModal() {
+            document.getElementById('qr-modal').classList.add('open');
+            fetchInfo();
+        }
+
+        function closeQrModal() {
+            document.getElementById('qr-modal').classList.remove('open');
+        }
+
+        function fetchFiles() {
+            console.log("Fetching files...");
+            fetch(API_BASE + '/api/files')
+                .then(res => res.json())
+                .then(files => {
+                    fileListEl.innerHTML = '';
+                    if (files.length === 0) {
+                        fileListEl.innerHTML = '<li style="padding: 20px; text-align: center; color: var(--secondary-text);">Henüz dosya yok.</li>';
+                        return;
+                    }
+                    files.forEach(file => {
+                        const li = document.createElement('li');
+                        li.className = 'file-item';
+                        li.innerHTML = `
+                            <div class="file-info">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                                <div class="file-name-wrapper">
+                                    <span class="file-name" title="${file.name}">${file.name}</span>
+                                    <span class="file-size">${formatSize(file.size)}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="action-btn" onclick="downloadFile('${file.name.replace(/'/g, "\\'")}')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                </button>
+                                <button class="action-btn delete-btn" onclick="deleteFile('${file.name.replace(/'/g, "\\'")}')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </div>
+                        `;
+                        fileListEl.appendChild(li);
+                    });
+                });
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        async function downloadFile(filename) {
+            console.log("Hybrid Download Start: " + filename);
+            const downloadUrl = API_BASE + '/api/download/' + encodeURIComponent(filename);
+
+            if (window.cordova && (window.FileTransfer || (cordova.plugin && cordova.plugin.fileTransfer))) {
+                const nativeSource = downloadUrl.replace('localhost', '127.0.0.1');
+                const fileTransfer = new (window.FileTransfer || cordova.plugin.fileTransfer)();
+
+                const publicPath = cordova.file.externalRootDirectory + "Download/" + filename;
+                const privatePath = cordova.file.externalDataDirectory + filename;
+
+                const startNativeDownload = (targetPath, usePublic) => {
+                    const statusText = document.getElementById('status-text');
+                    if (statusText) statusText.innerText = "İndiriliyor...";
+
+                    fileTransfer.download(
+                        nativeSource,
+                        targetPath,
+                        function (entry) {
+                            if (statusText) statusText.innerText = "Bağlı";
+
+                            // Show Notification instead of Alert
+                            showToast("Dosya indirildi: " + filename);
+
+                            if (window.cordova.plugins.notification.local) {
+                                window.cordova.plugins.notification.local.schedule({
+                                    title: 'İndirme Tamamlandı',
+                                    text: filename,
+                                    foreground: true,
+                                    data: { path: entry.toURL() }
+                                });
+                            }
+
+                            // Still open automatically as requested before
+                            if (window.cordova.plugins.fileOpener2) {
+                                cordova.plugins.fileOpener2.open(entry.toURL(), getMimeType(filename));
+                            }
+                        },
+                        function (error) {
+                            if (statusText) statusText.innerText = "Bağlı";
+                            if (usePublic) {
+                                startNativeDownload(privatePath, false);
+                            } else {
+                                showToast("İndirme başarısız!");
+                                window.open(downloadUrl, '_system');
+                            }
+                        },
+                        false
+                    );
+                };
+
+                if (window.cordova.plugins.permissions) {
+                    const permissions = window.cordova.plugins.permissions;
+                    permissions.requestPermission(permissions.WRITE_EXTERNAL_STORAGE, () => {
+                        startNativeDownload(publicPath, true);
+                    }, () => {
+                        startNativeDownload(privatePath, false);
+                    });
+                } else {
+                    startNativeDownload(publicPath, true);
+                }
+                return;
+            }
+
+            // Web Fallback
+            window.open(downloadUrl, '_blank');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function openDownloadsFolder() {
+            if (!window.cordova) {
+                alert("Bu özellik sadece mobil uygulamada çalışır.");
+                return;
+            }
+
+            const modal = document.getElementById('downloads-modal');
+            const listContainer = document.getElementById('local-files-list');
+            listContainer.innerHTML = '<div style="text-align:center; padding:20px; color:gray;">Taranıyor...</div>';
+            modal.classList.add('open');
+
+            // Scan both potential directories
+            const dirs = [
+                { path: cordova.file.externalRootDirectory + "Download/", label: "İndirilenler" },
+                { path: cordova.file.externalDataDirectory, label: "Uygulama Alanı" }
+            ];
+
+            let allItems = [];
+            let processed = 0;
+
+            dirs.forEach(dir => {
+                window.resolveLocalFileSystemURL(dir.path, (dirEntry) => {
+                    const reader = dirEntry.createReader();
+                    reader.readEntries((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isFile) {
+                                allItems.push({ entry, label: dir.label });
+                            }
+                        });
+                        processed++;
+                        if (processed === dirs.length) renderLocalFiles(allItems);
+                    }, () => {
+                        processed++;
+                        if (processed === dirs.length) renderLocalFiles(allItems);
+                    });
+                }, () => {
+                    processed++;
+                    if (processed === dirs.length) renderLocalFiles(allItems);
+                });
+            });
+        }
+
+        function renderLocalFiles(items) {
+            const listContainer = document.getElementById('local-files-list');
+            listContainer.innerHTML = '';
+
+            if (items.length === 0) {
+                listContainer.innerHTML = '<div style="text-align:center; padding:40px; color:gray;">Henüz indirilmiş dosya bulunamadı.</div>';
+                return;
+            }
+
+            // Sort by name
+            items.sort((a, b) => b.entry.name.localeCompare(a.entry.name));
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'download-item';
+                div.innerHTML = `
+                    <div class="download-item-name">
+                        <div style="font-size:0.7rem; color:var(--primary-color);" >${item.label}</div>
+                        ${item.entry.name}
+                    </div>
+                    <button class="download-item-btn" onclick="openLocalFile('${item.entry.nativeURL.replace(/'/g, "\\'")}')">Aç</button>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        function openLocalFile(url) {
+            if (window.cordova && window.cordova.plugins.fileOpener2) {
+                const filename = url.split('/').pop();
+                window.cordova.plugins.fileOpener2.open(url, getMimeType(filename));
+            }
+        }
+
+        function closeDownloadsModal() {
+            document.getElementById('downloads-modal').classList.remove('open');
+        }
+
+        // --- APK-to-APK Connection ---
+        function scanDeviceQR() {
+            if (!window.cordova || !window.cordova.plugins.barcodeScanner) {
+                const manualIp = prompt("Bağlanılacak cihazın IP adresini girin (Örn: 192.168.1.50:3000):");
+                if (manualIp) connectToDevice(manualIp.startsWith('http') ? manualIp : 'http://' + manualIp);
+                return;
+            }
+
+            cordova.plugins.barcodeScanner.scan(
+                function (result) {
+                    if (!result.cancelled && result.text) {
+                        let url = result.text;
+                        // Basic validation if it's our URL format
+                        if (url.startsWith('http')) {
+                            connectToDevice(url);
+                        } else {
+                            alert("Geçersiz QR Kod. Lütfen diğer cihazdaki 'Lokal' QR kodunu okutun.");
+                        }
+                    }
+                },
+                function (error) {
+                    alert("Tarama hatası: " + error);
+                },
+                {
+                    preferFrontCamera: false,
+                    showFlipCameraButton: true,
+                    showTorchButton: true,
+                    prompt: "Diğer cihazdaki QR kodu tara",
+                    resultDisplayDuration: 500,
+                    formats: "QR_CODE",
+                    orientation: "portrait",
+                    disableAnimations: true,
+                    disableSuccessBeep: false
+                }
+            );
+        }
+
+        function connectToDevice(url) {
+            // Clean URL (remove trailing slashes)
+            if (url.endsWith('/')) url = url.slice(0, -1);
+
+            API_BASE = url;
+            isRemoteMode = true;
+
+            // Update UI to show we are connected elsewhere
+            document.getElementById('disconnect-btn').style.display = 'block';
+            document.querySelector('h1').innerHTML = `
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--success-color)">
+                    <path d="M5 12h14M12 5l7 7-7 7"></path>
+                </svg>
+                Bağlı Cihaz
+            `;
+
+            showToast("Diğer cihaza bağlandınız!");
+            fetchFiles(); // Refresh list from new source
+        }
+
+        function disconnectRemote() {
+            API_BASE = 'http://localhost:3000';
+            isRemoteMode = false;
+
+            document.getElementById('disconnect-btn').style.display = 'none';
+            document.querySelector('h1').innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+                Dosya Paylaş
+            `;
+
+            showToast("Kendi cihazınıza dönüldü.");
+            fetchFiles();
+        }
+
+        // Helper for native opener
+        function getMimeType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const types = {
+                'pdf': 'application/pdf',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'txt': 'text/plain',
+                'apk': 'application/vnd.android.package-archive',
+                'zip': 'application/zip',
+                'mp4': 'video/mp4',
+                'mp3': 'audio/mpeg'
+            };
+            return types[ext] || 'application/octet-stream';
+        }
+
+        function deleteFile(filename) {
+            if (!confirm('Silmek istediğinize emin misiniz?')) return;
+            fetch(API_BASE + `/api/files/${encodeURIComponent(filename)}`, { method: 'DELETE' })
+                .then(() => fetchFiles());
+        }
+
+        // Drop Zone
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--primary-color)';
+            dropZone.style.background = 'rgba(59, 130, 246, 0.05)';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = 'var(--border-color)';
+            dropZone.style.background = 'none';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--border-color)';
+            dropZone.style.background = 'none';
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            if (!files.length) return;
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) formData.append('files', files[i]);
+
+            const originalText = document.querySelector('.upload-text').textContent;
+            document.querySelector('.upload-text').textContent = 'Yükleniyor...';
+
+            fetch(API_BASE + '/api/upload', { method: 'POST', body: formData })
+                .then(() => {
+                    fetchFiles();
+                    document.querySelector('.upload-text').textContent = 'Yüklendi!';
+                    setTimeout(() => {
+                        document.querySelector('.upload-text').textContent = originalText;
+                    }, 2000);
+                })
+                .catch(() => alert('Yükleme başarısız'));
+        }
+
+        // Chat Logic
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+
+        // Create a user ID if not exists
+        let myId = localStorage.getItem('myChatId');
+        if (!myId) {
+            myId = 'guest-' + Math.floor(Math.random() * 10000);
+            localStorage.setItem('myChatId', myId);
+        }
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            fetch(API_BASE + '/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sender: myId, text: text })
+            })
+                .then(res => res.json())
+                .then(() => {
+                    chatInput.value = '';
+                    fetchMessages();
+                });
+        }
+
+        function fetchMessages() {
+            fetch(API_BASE + '/api/chat')
+                .then(res => res.json())
+                .then(msgs => {
+                    chatMessages.innerHTML = '';
+                    if (msgs.length === 0) {
+                        chatMessages.innerHTML = '<div style="color:var(--secondary-text); text-align:center; font-size:0.8rem; margin-top:20px;">Henüz mesaj yok.</div>';
+                    }
+                    msgs.forEach(msg => {
+                        const div = document.createElement('div');
+                        const isMe = msg.sender === myId;
+                        div.style.cssText = `
+                            padding: 8px 12px; 
+                            border-radius: 8px; 
+                            max-width: 80%; 
+                            align-self: ${isMe ? 'flex-end' : 'flex-start'};
+                            background: ${isMe ? 'var(--primary-color)' : '#333'};
+                            color: white;
+                            font-size: 0.9rem;
+                            margin-bottom: 4px;
+                        `;
+                        // Simple sender name logic
+                        const senderName = isMe ? 'Ben' : msg.sender.split('-')[1] || 'Guest';
+                        div.innerHTML = `<div style="font-size:0.7rem; opacity:0.7; margin-bottom:2px;">${senderName}</div>${msg.text}`;
+                        chatMessages.appendChild(div);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+        }
+    </script>
+    <script src="cordova.js"></script>
+    <script>
+        document.addEventListener("deviceready", function () {
+            console.log("Device Ready");
+
+            // 1. Start Node Server
+            nodejs.start("server.js", (err) => {
+                if (err) console.error("Node start error:", err);
+                else console.log("Node started successfully.");
+            });
+
+            // 2. Override Fetch to use dynamic API_BASE
+            const originalFetch = window.fetch;
+            window.fetch = function (url, opts) {
+                if (typeof url === 'string' && url.startsWith("/")) {
+                    url = API_BASE + url;
+                }
+
+                // If remote mode, add localtunnel bypass header
+                if (isRemoteMode && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+                    opts = opts || {};
+                    if (!opts.headers) opts.headers = {};
+
+                    // Handle different header types
+                    if (opts.headers instanceof Headers) {
+                        opts.headers.set('Bypass-Tunnel-Reminder', 'true');
+                    } else if (Array.isArray(opts.headers)) {
+                        opts.headers.push(['Bypass-Tunnel-Reminder', 'true']);
+                    } else {
+                        opts.headers['Bypass-Tunnel-Reminder'] = 'true';
+                    }
+                }
+                return originalFetch(url, opts);
+            };
+
+            // 3. Poll for Server Ready
+            const checkServer = setInterval(() => {
+                // Use absolute URL here to be safe
+                fetch("http://localhost:3000/api/info")
+                    .then(r => {
+                        if (r.ok) {
+                            clearInterval(checkServer);
+                            console.log("Server detected!");
+                            if (typeof startApp === 'function') {
+                                // Start the UI logic
+                                startApp();
+                            }
+                        }
+                    })
+                    .catch(e => console.log("Waiting for server..."));
+            }, 1000);
+        }, false);
+    </script>
+</body>

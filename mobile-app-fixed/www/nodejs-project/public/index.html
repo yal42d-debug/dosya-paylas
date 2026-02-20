@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yerel Dosya Paylaşımı & Sohbet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --secondary-text: #94a3b8;
+            --border-color: #334155;
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-color);
+        }
+
+        main {
+            flex: 1;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: 1fr;
+                overflow-y: auto;
+            }
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .section-title {
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* File List */
+        .file-list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            transition: background 0.2s;
+            gap: 15px;
+            cursor: pointer;
+            margin-bottom: 4px;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            word-break: break-all;
+        }
+
+        .file-meta {
+            font-size: 0.8rem;
+            color: var(--secondary-text);
+        }
+
+        .download-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Chat */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: #334155;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: var(--primary-color);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: white;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .send-btn {
+            background: var(--primary-color);
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Upload area */
+        .upload-zone {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .upload-box {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .upload-box:hover {
+            border-color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-box.dragging {
+            border-color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 100px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v8" />
+                <path d="m16 6-4 4-4-4" />
+                <rect width="20" height="8" x="2" y="14" rx="2" />
+                <path d="M6 18h.01" />
+                <path d="M10 18h.01" />
+            </svg>
+            Local Share
+        </div>
+        <div class="status-badge" id="online-status">Bağlı</div>
+    </header>
+
+    <main>
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                        <polyline points="13 2 13 9 20 9" />
+                    </svg>
+                    Paylaşılan Dosyalar
+                </div>
+                <button onclick="fetchFiles()" class="meta-btn"
+                    style="background:none; border:none; color:var(--secondary-text); cursor:pointer;">Yenile</button>
+            </div>
+            <div class="file-list-container" id="file-list">
+                <!-- Dosyalar buraya gelecek -->
+                <div style="padding: 40px; text-align: center; color: var(--secondary-text);">
+                    Yükleniyor...
+                </div>
+            </div>
+            <div class="upload-zone">
+                <div class="upload-box" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-bottom: 8px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p style="font-size: 0.9rem; font-weight: 500;">Dosya Yükle</p>
+                    <p style="font-size: 0.75rem; color: var(--secondary-text);">Sürükleyip bırakın veya tıklayın</p>
+                    <input type="file" id="file-input" multiple style="display: none;">
+                </div>
+            </div>
+        </div>
+
+        <div class="section chat-container">
+            <div class="section-header">
+                <div class="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Anlık Sohbet
+                </div>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="message received">
+                    Dosya paylaşımı için bu ekranı kullanabilirsiniz!
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" id="chat-input" placeholder="Mesaj yazın...">
+                <button class="send-btn" id="send-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="22" y1="2" x2="11" y2="13" />
+                        <polyline points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const fileListEl = document.getElementById('file-list');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+
+        const myId = 'web-' + Math.random().toString(36).substr(2, 5);
+
+        // API Helpers
+        function fetchFiles() {
+            fetch('/api/files')
+                .then(res => res.json())
+                .then(files => {
+                    fileListEl.innerHTML = '';
+                    if (files.length === 0) {
+                        fileListEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--secondary-text);">Henüz dosya paylaşılmamış.</div>';
+                        return;
+                    }
+                    files.reverse().forEach(file => {
+                        const div = document.createElement('div');
+                        div.className = 'file-item';
+                        div.innerHTML = `
+                            <div class="file-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                            </div>
+                            <div class="file-info">
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-meta">${formatSize(file.size)} • ${new Date(file.date).toLocaleTimeString()}</div>
+                            </div>
+                            <button onclick="downloadFile('${file.name.replace(/'/g, "\\'")}')" class="download-btn">İndir</button>
+                        `;
+                        fileListEl.appendChild(div);
+                    });
+                })
+                .catch(err => {
+                    fileListEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--danger-color);">Sunucuya bağlanılamadı.</div>';
+                });
+        }
+
+        async function downloadFile(filename) {
+            try {
+                const url = '/api/download/' + encodeURIComponent(filename);
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Dosya bulunamadı');
+
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+                alert('İndirme başarısız: ' + err.message);
+                window.open('/api/download/' + encodeURIComponent(filename), '_blank');
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        // Chat helpers
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sender: myId, text: text })
+            }).then(() => {
+                chatInput.value = '';
+                fetchMessages();
+            });
+        }
+
+        function fetchMessages() {
+            fetch('/api/chat')
+                .then(res => res.json())
+                .then(msgs => {
+                    chatMessages.innerHTML = '';
+                    msgs.forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = `message ${msg.sender === myId ? 'sent' : 'received'}`;
+                        div.textContent = msg.text;
+                        chatMessages.appendChild(div);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+        }
+
+        // Upload helpers
+        function uploadFiles(files) {
+            const formData = new FormData();
+            for (let file of files) {
+                formData.append('files', file);
+            }
+
+            const activeUpload = document.querySelector('.upload-box');
+            const originalHtml = activeUpload.innerHTML;
+            activeUpload.innerHTML = '<p>Yükleniyor...</p>';
+
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            }).then(() => {
+                activeUpload.innerHTML = originalHtml;
+                fetchFiles();
+            }).catch(() => {
+                alert('Yükleme başarısız!');
+                activeUpload.innerHTML = originalHtml;
+            });
+        }
+
+        // Event Listeners
+        sendBtn.onclick = sendMessage;
+        chatInput.onkeypress = (e) => e.key === 'Enter' && sendMessage();
+        fileInput.onchange = (e) => uploadFiles(e.target.files);
+
+        // Drag and Drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        dropZone.addEventListener('dragenter', () => dropZone.classList.add('dragging'));
+        dropZone.addEventListener('dragover', () => dropZone.classList.add('dragging'));
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+        dropZone.addEventListener('drop', (e) => {
+            dropZone.classList.remove('dragging');
+            uploadFiles(e.dataTransfer.files);
+        });
+
+        // Loop
+        fetchFiles();
+        fetchMessages();
+        setInterval(fetchFiles, 5000);
+        setInterval(fetchMessages, 2000);
+    </script>
+</body>
+
+</html>

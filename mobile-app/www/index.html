@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dosya Paylaşım Merkezi</title>
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --secondary-text: #a0a0a0;
+            --primary-color: #3b82f6;
+            /* Blue */
+            --primary-hover: #2563eb;
+            --danger-color: #ef4444;
+            --border-color: #333;
+            --success-color: #10b981;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            padding: 24px;
+            position: relative;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--secondary-text);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        /* Remote Control Section */
+        .tunnel-control {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tunnel-status {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #666;
+        }
+
+        .status-dot.active {
+            background-color: var(--success-color);
+            box-shadow: 0 0 8px var(--success-color);
+        }
+
+        .switch-btn {
+            background-color: var(--card-bg);
+            /* Default OFF state */
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .switch-btn.active {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        /* Upload Section */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            color: var(--secondary-text);
+            font-size: 0.9rem;
+        }
+
+        /* File List */
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .file-icon {
+            color: var(--secondary-text);
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .file-name-wrapper {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .file-name {
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 0.75rem;
+            color: var(--secondary-text);
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary-text);
+            padding: 6px;
+            border-radius: 6px;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .delete-btn:hover {
+            color: var(--danger-color);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Modal & Tabs */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px;
+            color: var(--secondary-text);
+            cursor: pointer;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .wifi-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .wifi-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            outline: none;
+        }
+
+        .generate-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>
+                <!-- File Icon -->
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+                Dosya Paylaş
+            </h1>
+            <div style="display: flex; gap: 8px;">
+                <button class="icon-btn" onclick="openQrModal()" title="QR Menüsü">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="location.href='http://localhost:3000/download-app'"
+                    title="Kaynak İndir">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Remote Tunnel Control -->
+        <div class="tunnel-control">
+            <div class="tunnel-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Bağlantı Kapalı</span>
+            </div>
+            <button class="switch-btn" id="tunnel-btn" onclick="toggleTunnel()">Dışarı Aç</button>
+        </div>
+
+        <!-- Chat Section -->
+        <h3 style="font-size: 1rem; color: var(--secondary-text); margin: 24px 0 12px 0;">Mesajlaşma</h3>
+        <div class="chat-container"
+            style="border: 1px solid var(--border-color); border-radius: 12px; height: 200px; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 24px;">
+            <div id="chat-messages"
+                style="flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+            </div>
+            <div style="display: flex; border-top: 1px solid var(--border-color); padding: 8px;">
+                <input type="text" id="chat-input" placeholder="Mesaj..."
+                    style="flex: 1; background: transparent; border: none; color: white; padding: 8px; outline: none;">
+                <button onclick="sendMessage()"
+                    style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Gönder</button>
+            </div>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <input type="file" id="file-input" multiple hidden>
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <div class="upload-text">Dosya Yükle</div>
+        </div>
+
+        <h3 style="font-size: 1rem; color: var(--secondary-text); margin-bottom: 12px;">Dosyalar</h3>
+        <ul class="file-list" id="file-list">
+            <!-- JS will populate this -->
+        </ul>
+    </div>
+
+    <!-- Multi-Tab QR Modal -->
+    <div class="modal" id="qr-modal">
+        <div class="modal-content">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('local')">Lokal</button>
+                <button class="tab-btn" onclick="switchTab('wifi')">Wi-Fi</button>
+                <button class="tab-btn" onclick="switchTab('remote')">Uzaktan</button>
+                <button class="tab-btn" onclick="switchTab('firebase')">Firebase</button>
+            </div>
+
+            <!-- Local Tab -->
+            <div id="tab-local" class="tab-content active">
+                <img id="qr-local-img" src="" alt="Local QR" style="width: 200px; height: 200px; border-radius: 8px;">
+                <p style="color: var(--secondary-text); margin-top: 10px; font-size: 0.85rem;">Aynı Wi-Fi ağındakiler
+                    için</p>
+            </div>
+
+            <!-- Wi-Fi Tab -->
+            <div id="tab-wifi" class="tab-content">
+                <div class="wifi-form">
+                    <input type="text" id="wifi-ssid" class="wifi-input" placeholder="Wi-Fi Adı (SSID)">
+                    <input type="password" id="wifi-pass" class="wifi-input" placeholder="Wi-Fi Şifresi">
+                    <button class="generate-btn" onclick="generateWifiQr()">Wi-Fi QR Oluştur</button>
+                </div>
+                <img id="qr-wifi-img" src=""
+                    style="width: 200px; height: 200px; border-radius: 8px; display: none; margin-top: 12px; margin-left:auto; margin-right:auto;">
+            </div>
+
+            <!-- Remote Tab -->
+            <div id="tab-remote" class="tab-content">
+                <div class="wifi-form">
+                    <input type="text" id="remote-url-input" class="wifi-input"
+                        placeholder="Tünel URL'si yapıştır (cloudflared vb.)">
+                    <button class="generate-btn" onclick="setRemoteUrl()">Uzaktan QR Oluştur</button>
+                </div>
+                <div id="remote-qr-container" style="display: none; margin-top: 12px;">
+                    <img id="qr-remote-img" src="" alt="Remote QR"
+                        style="width: 200px; height: 200px; border-radius: 8px;">
+                    <p style="color: var(--secondary-text); margin-top: 10px; font-size: 0.85rem;">İnternet üzerinden
+                        erişim için</p>
+                    <p id="remote-url-text"
+                        style="word-break: break-all; color: var(--primary-color); font-size: 0.8rem; margin-top: 5px;">
+                    </p>
+                </div>
+                <div id="remote-placeholder" style="padding: 10px; color: var(--secondary-text); font-size: 0.8rem;">
+                    <p>PC'de şu komutu çalıştırın:</p>
+                    <p
+                        style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 0.75rem; margin: 8px 0;">
+                        cloudflared tunnel --url http://TELEFON_IP:3000</p>
+                    <p>Çıkan URL'yi yukarıya yapıştırın.</p>
+                </div>
+            </div>
+
+            <!-- Firebase Tab -->
+            <div id="tab-firebase" class="tab-content">
+                <div class="wifi-form">
+                    <p style="font-size: 0.8rem; color: var(--secondary-text);">Firebase Ayarları (JSON)</p>
+                    <textarea id="firebase-config-input" class="wifi-input" style="height: 100px; font-size: 0.7rem;"
+                        placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "...", "storageBucket": "..."}'></textarea>
+                    <button class="generate-btn" onclick="saveFirebaseConfig()">Ayarları Kaydet</button>
+                </div>
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+                <p style="font-size: 0.8rem; color: var(--success-color);" id="firebase-status">Ayarlar bekleniyor...
+                </p>
+            </div>
+
+            <button class="modal-close" style="margin-top: 20px;" onclick="closeQrModal()">Kapat</button>
+        </div>
+    </div>
+
+    <script>
+        const fileListEl = document.getElementById('file-list');
+        const tunnelBtn = document.getElementById('tunnel-btn');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+
+        // State
+        let isTunnelRunning = false;
+        let tunnelUrl = null;
+        let localQrData = null;
+
+        // Init
+        function startApp() {
+            console.log("Starting App UI...");
+            fetchFiles();
+            checkTunnelStatus();
+            fetchInfo();
+            setInterval(checkTunnelStatus, 5000);
+            setInterval(fetchMessages, 2000);
+            setInterval(fetchFiles, 3000);
+        }
+
+        // --- Tabs Logic ---
+        function switchTab(tabName) {
+            // Update UI
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            // Activate selected
+            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'remote') {
+                updateRemoteTabUI();
+            }
+        }
+
+        function updateRemoteTabUI() {
+            const container = document.getElementById('remote-qr-container');
+            const placeholder = document.getElementById('remote-placeholder');
+
+            if (isTunnelRunning && tunnelUrl) {
+                container.style.display = 'block';
+                placeholder.style.display = 'none';
+                document.getElementById('remote-url-text').textContent = tunnelUrl;
+                document.getElementById('remote-url-input').value = tunnelUrl;
+                generateQr(tunnelUrl, 'qr-remote-img');
+            } else {
+                container.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
+        }
+
+        function setRemoteUrl() {
+            const url = document.getElementById('remote-url-input').value.trim();
+            if (!url) return alert('Lütfen bir URL girin.');
+
+            fetch('/api/tunnel/set-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    tunnelUrl = url;
+                    isTunnelRunning = true;
+                    updateRemoteTabUI();
+                    updateTunnelUI(true, url);
+                })
+                .catch(err => alert('URL kaydedilemedi'));
+        }
+
+        function generateWifiQr() {
+            const ssid = document.getElementById('wifi-ssid').value.trim();
+            const pass = document.getElementById('wifi-pass').value.trim();
+
+            if (!ssid) return alert("Lütfen Wi-Fi adını girin.");
+
+            // Format: WIFI:T:WPA;S:mynetwork;P:mypass;;
+            const wifiStr = `WIFI:T:WPA;S:${ssid};P:${pass};;`;
+
+            generateQr(wifiStr, 'qr-wifi-img');
+            document.getElementById('qr-wifi-img').style.display = 'block';
+        }
+
+        function generateQr(text, imgId) {
+            fetch('/api/qr/custom', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const img = document.getElementById(imgId);
+                    if (img) img.src = data.qrCode;
+                })
+                .catch(err => console.error("QR Fail", err));
+        }
+
+        // --- Core Functions ---
+
+        function fetchInfo() {
+            fetch('/api/info')
+                .then(res => res.json())
+                .then(data => {
+                    localQrData = data.qrCode;
+                    document.getElementById('qr-local-img').src = localQrData;
+                });
+        }
+
+        function checkTunnelStatus() {
+            fetch('/api/tunnel/status')
+                .then(res => res.json())
+                .then(data => {
+                    isTunnelRunning = data.running;
+                    tunnelUrl = data.url;
+                    updateTunnelUI(data.running, data.url);
+                    // Update Remote Tab if open
+                    if (document.getElementById('tab-remote').classList.contains('active')) {
+                        updateRemoteTabUI();
+                    }
+                })
+                .catch(console.error);
+        }
+
+        function updateTunnelUI(running, url) {
+            if (running) {
+                statusDot.classList.add('active');
+                statusText.textContent = "Online";
+                tunnelBtn.textContent = "Kapat";
+                tunnelBtn.classList.add('active');
+            } else {
+                statusDot.classList.remove('active');
+                statusText.textContent = "Offline";
+                tunnelBtn.textContent = "Dışarı Aç";
+                tunnelBtn.classList.remove('active');
+            }
+        }
+
+        function toggleTunnel() {
+            tunnelBtn.disabled = true;
+            tunnelBtn.style.opacity = "0.7";
+
+            const endpoint = isTunnelRunning ? '/api/tunnel/stop' : '/api/tunnel/start';
+
+            fetch(endpoint, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    setTimeout(checkTunnelStatus, 1000); // Check after a second
+                })
+                .catch(err => alert('İşlem başarısız'))
+                .finally(() => {
+                    tunnelBtn.disabled = false;
+                    tunnelBtn.style.opacity = "1";
+                });
+        }
+
+        function openQrModal() {
+            document.getElementById('qr-modal').classList.add('open');
+            // Default to Local Tab specific logic if needed
+        }
+
+        function closeQrModal() {
+            document.getElementById('qr-modal').classList.remove('open');
+        }
+
+        function fetchFiles() {
+            fetch('/api/files')
+                .then(res => res.json())
+                .then(files => {
+                    fileListEl.innerHTML = '';
+                    if (files.length === 0) {
+                        fileListEl.innerHTML = '<li style="padding: 20px; text-align: center; color: var(--secondary-text);">Henüz dosya yok.</li>';
+                        return;
+                    }
+                    files.forEach(file => {
+                        const li = document.createElement('li');
+                        li.className = 'file-item';
+                        li.innerHTML = `
+                            <div class="file-info">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                                <div class="file-name-wrapper">
+                                    <span class="file-name" title="${file.name}">${file.name}</span>
+                                    <span class="file-size">${formatSize(file.size)}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="action-btn" onclick="location.href='http://localhost:3000/download/${encodeURIComponent(file.name)}'">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                </button>
+                                <button class="action-btn delete-btn" onclick="deleteFile('${encodeURIComponent(file.name)}')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                                <button class="action-btn" title="Firebase'e Yükle" onclick="uploadToFirebase('${encodeURIComponent(file.name)}')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                    <span style="font-size:0.6rem; vertical-align: super;">Cloud</span>
+                                </button>
+                            </div>
+                        `;
+                        fileListEl.appendChild(li);
+                    });
+                });
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function deleteFile(filename) {
+            if (!confirm('Silmek istediğinize emin misiniz?')) return;
+            fetch(`/api/files/${filename}`, { method: 'DELETE' })
+                .then(() => fetchFiles());
+        }
+
+        // Drop Zone
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--primary-color)';
+            dropZone.style.background = 'rgba(59, 130, 246, 0.05)';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = 'var(--border-color)';
+            dropZone.style.background = 'none';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--border-color)';
+            dropZone.style.background = 'none';
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            if (!files.length) return;
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) formData.append('files', files[i]);
+
+            const originalText = document.querySelector('.upload-text').textContent;
+            document.querySelector('.upload-text').textContent = 'Yükleniyor...';
+
+            fetch('/api/upload', { method: 'POST', body: formData })
+                .then(() => {
+                    fetchFiles();
+                    document.querySelector('.upload-text').textContent = 'Yüklendi!';
+                    setTimeout(() => {
+                        document.querySelector('.upload-text').textContent = originalText;
+                    }, 2000);
+                })
+                .catch(() => alert('Yükleme başarısız'));
+        }
+
+        // Chat Logic
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+
+        // Create a user ID if not exists
+        let myId = localStorage.getItem('myChatId');
+        if (!myId) {
+            myId = 'guest-' + Math.floor(Math.random() * 10000);
+            localStorage.setItem('myChatId', myId);
+        }
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sender: myId, text: text })
+            })
+                .then(res => res.json())
+                .then(() => {
+                    chatInput.value = '';
+                    fetchMessages();
+                });
+        }
+
+        function fetchMessages() {
+            fetch('/api/chat')
+                .then(res => res.json())
+                .then(msgs => {
+                    chatMessages.innerHTML = '';
+                    if (msgs.length === 0) {
+                        chatMessages.innerHTML = '<div style="color:var(--secondary-text); text-align:center; font-size:0.8rem; margin-top:20px;">Henüz mesaj yok.</div>';
+                    }
+                    msgs.forEach(msg => {
+                        const div = document.createElement('div');
+                        const isMe = msg.sender === myId;
+                        div.style.cssText = `
+                            padding: 8px 12px; 
+                            border-radius: 8px; 
+                            max-width: 80%; 
+                            align-self: ${isMe ? 'flex-end' : 'flex-start'};
+                            background: ${isMe ? 'var(--primary-color)' : '#333'};
+                            color: white;
+                            font-size: 0.9rem;
+                            margin-bottom: 4px;
+                        `;
+                        // Simple sender name logic
+                        const senderName = isMe ? 'Ben' : msg.sender.split('-')[1] || 'Guest';
+                        div.innerHTML = `<div style="font-size:0.7rem; opacity:0.7; margin-bottom:2px;">${senderName}</div>${msg.text}`;
+                        chatMessages.appendChild(div);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+        }
+        // Firebase Logic
+        function saveFirebaseConfig() {
+            const configStr = document.getElementById('firebase-config-input').value.trim();
+            if (!configStr) return alert('Konfigürasyon boş olamaz');
+            try {
+                const config = JSON.parse(configStr);
+                fetch('/api/firebase/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                })
+                    .then(res => res.json())
+                    .then(d => {
+                        if (d.success) {
+                            alert('Ayarlar kaydedildi!');
+                            loadFirebaseConfig();
+                        } else {
+                            alert('Hata: ' + d.error);
+                        }
+                    });
+            } catch (e) {
+                alert('Geçersiz JSON formatı!');
+            }
+        }
+
+        function loadFirebaseConfig() {
+            fetch('/api/firebase/config')
+                .then(res => res.json())
+                .then(config => {
+                    if (config && config.apiKey) {
+                        document.getElementById('firebase-config-input').value = JSON.stringify(config, null, 2);
+                        document.getElementById('firebase-status').textContent = "Ayarlar Yüklendi ✅";
+                    } else {
+                        document.getElementById('firebase-status').textContent = "Ayarlar bekleniyor...";
+                    }
+                });
+        }
+
+        // Initial load
+        setTimeout(loadFirebaseConfig, 2000);
+
+        function uploadToFirebase(filename) {
+            if (!confirm(filename + ' dosyasını Firebase Storage\'a yüklemek istiyor musunuz?')) return;
+
+            const btn = event.currentTarget; // The button clicked
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '...';
+            btn.disabled = true;
+
+            fetch('/api/firebase/upload-file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: decodeURIComponent(filename) })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        prompt("Dosya Yüklendi! Linki kopyalayın:", data.url);
+                    } else {
+                        alert("Hata: " + data.error);
+                    }
+                })
+                .catch(err => alert("Bağlantı hatası"))
+                .finally(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                });
+        }
+    </script>
+    <script src="cordova.js"></script>
+    <script>
+        document.addEventListener("deviceready", function () {
+            console.log("Device Ready");
+
+            // 1. Start Node Server
+            nodejs.start("server.js", (err) => {
+                if (err) console.error("Node start error:", err);
+                else console.log("Node started successfully.");
+            });
+
+            // 2. Override Fetch to use localhost
+            const originalFetch = window.fetch;
+            window.fetch = function (url, opts) {
+                // If url is relative like "/api/...", prepend localhost
+                if (typeof url === 'string' && url.startsWith("/")) {
+                    url = "http://localhost:3000" + url;
+                }
+                return originalFetch(url, opts);
+            };
+
+            // 3. Poll for Server Ready
+            const checkServer = setInterval(() => {
+                // Use absolute URL here to be safe
+                fetch("http://localhost:3000/api/info")
+                    .then(r => {
+                        if (r.ok) {
+                            clearInterval(checkServer);
+                            console.log("Server detected!");
+                            if (typeof startApp === 'function') {
+                                // Start the UI logic
+                                startApp();
+                            }
+                        }
+                    })
+                    .catch(e => console.log("Waiting for server..."));
+            }, 1000);
+        }, false);
+    </script>
+</body>
