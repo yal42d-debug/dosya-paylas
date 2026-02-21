@@ -40,7 +40,10 @@ https.get('https://api.ipify.org', (resp) => {
 }).on("error", (err) => { console.error("IP Error: " + err.message); });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  allowedHeaders: ['Content-Type', 'Bypass-Tunnel-Reminder'],
+  exposedHeaders: ['Bypass-Tunnel-Reminder']
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
