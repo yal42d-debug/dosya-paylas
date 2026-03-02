@@ -774,6 +774,17 @@
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 });
         }
+        function startApp() {
+            fetchInfo();
+            checkTunnelStatus();
+            fetchFiles();
+            fetchMessages();
+
+            // Periyodik güncellemeler
+            setInterval(fetchFiles, 4000);
+            setInterval(fetchMessages, 3000);
+        }
+
         // Initialize immediately for web clients
         startApp();
     </script>

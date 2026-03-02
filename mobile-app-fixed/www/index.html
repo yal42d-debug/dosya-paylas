@@ -1183,51 +1183,105 @@
 
         function connectToServer(targetUrl) {
             console.log("Connecting to:", targetUrl);
-            fetch(targetUrl + "/api/info", {
-                headers: { "Bypass-Tunnel-Reminder": "true" }
-            })
-                .then(res => {
-                    if (!res.ok) throw new Error("HTTP_" + res.status);
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.ip || data.localUrl || data.url) {
-                        BASE_URL = targetUrl;
-                        isRemoteMode = true;
-                        document.getElementById('local-btn').classList.remove('hidden');
-                        alert("Bağlantı Başarılı! Artık bu sunucudaki dosyaları görüyorsunuz.");
-                        startApp();
-                    } else {
-                        alert("Sunucu anlaşılamadı. Dış bağlantı olarak açılıyor.");
-                        window.open(targetUrl, '_system');
+
+            function handleResponse(resText, isSuccess, statusCode) {
+                if (isSuccess && statusCode === 200) {
+                    try {
+                        var data = JSON.parse(resText);
+                        if (data.ip || data.localUrl || data.url) {
+                            BASE_URL = targetUrl;
+                            isRemoteMode = true;
+                            document.getElementById('local-btn').classList.remove('hidden');
+
+                            let btn = document.getElementById('manual-connect-btn');
+                            if (btn) btn.style.display = 'none';
+
+                            alert("Bağlantı Başarılı! Artık bu sunucudaki dosyaları görüyorsunuz.");
+                            startApp();
+                        } else {
+                            alert("Bu adres bir Dosya Paylaş sunucusu değil.");
+                        }
+                    } catch (e) {
+                        alert("Sunucudan geçersiz yanıt alındı.");
                     }
-                })
-                .catch(err => {
-                    console.error("Connection failed after auth", err);
-                    alert("Sunucuya bağlanılamadı.\n\nİpucu: Tarayıcıda şifreyi doğru girdiğinizden emin olun.");
+                } else {
+                    alert("Sunucuya bağlanılamadı. (HTTP " + statusCode + ")");
+                }
+            }
+
+            if (window.cordova && cordova.plugin && cordova.plugin.http) {
+                console.log("Connecting via NATIVE HTTP...");
+                cordova.plugin.http.sendRequest(targetUrl + "/api/info", {
+                    method: 'get',
+                    headers: { 'Bypass-Tunnel-Reminder': 'true' }
+                }, function (res) {
+                    console.log("Native success!");
+                    handleResponse(res.data, true, res.status);
+                }, function (res) {
+                    console.log("Native fail!", res.error);
+                    handleResponse(null, false, res.status || 0);
+                    let btn = document.getElementById('manual-connect-btn');
+                    if (btn && btn.style.display !== 'none') {
+                        btn.innerHTML = '✅ Şifreyi Girdim, Bağlan';
+                        btn.disabled = false;
+                    }
                 });
+            } else {
+                console.log("Connecting via XMLHTTP...");
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', targetUrl + "/api/info", true);
+                xhr.setRequestHeader('Bypass-Tunnel-Reminder', 'true');
+                xhr.withCredentials = true;
+                xhr.timeout = 10000;
+                xhr.onload = function () {
+                    handleResponse(xhr.responseText, true, xhr.status);
+                };
+                xhr.onerror = function () {
+                    alert("Sunucuya bağlanılamadı.\nCihazların aynı ağda olduğundan emin olun veya tüneli kontrol edin.");
+                    let btn = document.getElementById('manual-connect-btn');
+                    if (btn && btn.style.display !== 'none') {
+                        btn.innerHTML = '✅ Şifreyi Girdim, Bağlan';
+                        btn.disabled = false;
+                    }
+                };
+                xhr.ontimeout = function () {
+                    alert("Bağlantı zaman aşımına uğradı.");
+                    let btn = document.getElementById('manual-connect-btn');
+                    if (btn && btn.style.display !== 'none') {
+                        btn.innerHTML = '✅ Şifreyi Girdim, Bağlan';
+                        btn.disabled = false;
+                    }
+                };
+                xhr.send();
+            }
         }
 
         function openTunnelAuth(targetUrl) {
-            // Open InAppBrowser for tunnel authentication
-            if (!window.cordova || !cordova.InAppBrowser) {
-                // Fallback: open in system browser
-                alert("Tarayıcıda tünel şifresini girin, sonra uygulamaya geri dönüp tekrar deneyin.");
-                window.open(targetUrl, '_system');
-                return;
+            alert("Chrome'da şifreyi (Public IP) girip sayfa yüklenince DOSYA PAYLAŞ KURULUMU uygulamasına geri dönün.\n\nGeri döndüğünüzde ekrandaki 'ŞİFREYİ GİRDİM, BAĞLAN' butonuna basın.");
+
+            // Ekrana manuel bağlan butonu ekle
+            let btn = document.getElementById('manual-connect-btn');
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.id = 'manual-connect-btn';
+                btn.innerHTML = '✅ Şifreyi Girdim, Bağlan';
+                btn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;border:none;padding:16px 24px;border-radius:12px;font-size:16px;font-weight:bold;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.8);cursor:pointer;width:90%;max-width:350px;text-align:center;';
+                document.body.appendChild(btn);
             }
+            btn.style.display = 'block';
+            btn.disabled = false;
+            btn.onclick = function () {
+                btn.innerHTML = 'Bağlanıyor... Lütfen bekleyin';
+                btn.disabled = true;
+                connectToServer(targetUrl);
+            };
 
-            alert("Şifre sayfası açılacak.\n\n1) Public IP adresinizi girin\n2) Submit butonuna basın\n3) Sayfa yüklendikten sonra sol üstteki 'Bağlan' butonuna basın");
-
-            var browser = cordova.InAppBrowser.open(targetUrl, '_blank',
-                'location=yes,toolbar=yes,closebuttoncaption=Bağlan,toolbarcolor=#1e1e1e,navigationbuttoncolor=#3b82f6,zoom=no,footer=no');
-
-            // When user closes the browser (taps "Bağlan" or back), try connecting
-            browser.addEventListener('exit', function () {
-                setTimeout(function () {
-                    connectToServer(targetUrl);
-                }, 500);
-            });
+            // Sistem tarayıcısında (Chrome) aç - kullanıcı şifreyi orada girecek
+            if (window.cordova) {
+                window.open(targetUrl, '_system');
+            } else {
+                window.open(targetUrl);
+            }
         }
 
         function startQrScan() {
@@ -1246,13 +1300,12 @@
                             const targetUrl = scannedText.endsWith('/') ? scannedText.slice(0, -1) : scannedText;
 
                             if (isTunnelUrl(targetUrl)) {
-                                // Tunnel URL - need browser auth first
-                                if (confirm("Tünel bağlantısı tespit edildi.\nŞifre giriş sayfası açılacak.\n\nDevam etmek istiyor musunuz?\n" + targetUrl)) {
-                                    openTunnelAuth(targetUrl);
+                                if (confirm("Tünel bağlantısı (İnternet) tespit edildi.\n\nBağlanmak istiyor musunuz?\n" + targetUrl)) {
+                                    // NO BROWSER REQUIRED ANYMORE!
+                                    connectToServer(targetUrl);
                                 }
                             } else {
-                                // Local network URL - direct connect
-                                if (confirm("Bu sunucuya bağlanmak istiyor musunuz?\n" + targetUrl)) {
+                                if (confirm("Yerel ağ sunucusuna bağlanmak istiyor musunuz?\n" + targetUrl)) {
                                     connectToServer(targetUrl);
                                 }
                             }
@@ -1300,9 +1353,16 @@
             // 2. Override Fetch to use BASE_URL and bypass Localtunnel reminder
             const originalFetch = window.fetch;
             window._originalFetch = originalFetch; // Save for direct use in connectToIp
+
             window.fetch = function (url, opts) {
                 opts = opts || {};
                 opts.headers = opts.headers || {};
+
+                let isRemoteReq = false;
+                if (typeof url === 'string' && url.startsWith("/")) {
+                    url = BASE_URL + url;
+                    isRemoteReq = true;
+                }
 
                 if (opts.headers instanceof Headers) {
                     opts.headers.append('Bypass-Tunnel-Reminder', 'true');
@@ -1310,9 +1370,47 @@
                     opts.headers['Bypass-Tunnel-Reminder'] = 'true';
                 }
 
-                if (typeof url === 'string' && url.startsWith("/")) {
-                    url = BASE_URL + url;
+                // EGER Cihazdaysak, Uzak Sunucuysa ve Native HTTP Eklentisi varsa:
+                if (isRemoteReq && window.cordova && cordova.plugin && cordova.plugin.http) {
+                    // FormData (Dosya Yükleme) şimdilik originalFetch ile gitsin (localtunnel POST için cookie aramayabilir veya hata verir)
+                    if (opts.body && opts.body instanceof FormData) {
+                        return originalFetch(url, opts);
+                    }
+
+                    // Native üzerinden gönder (CORS yok, tünel şifre duvarı yok)
+                    return new Promise((resolve, reject) => {
+                        let method = (opts.method || 'get').toLowerCase();
+                        let options = {
+                            method: method,
+                            headers: opts.headers instanceof Headers ? Object.fromEntries(opts.headers) : opts.headers
+                        };
+
+                        if (opts.body && typeof opts.body === 'string') {
+                            try {
+                                options.data = JSON.parse(opts.body);
+                                options.serializer = 'json';
+                            } catch (e) {
+                                options.data = opts.body;
+                                options.serializer = 'utf8';
+                            }
+                        }
+
+                        cordova.plugin.http.sendRequest(url, options,
+                            function (res) {
+                                // Başarılı Fetch Response Taklidi
+                                resolve({
+                                    ok: res.status >= 200 && res.status < 300,
+                                    status: res.status,
+                                    json: () => Promise.resolve(JSON.parse(res.data)),
+                                    text: () => Promise.resolve(res.data)
+                                });
+                            },
+                            function (res) {
+                                reject(new Error("Native HTTP Error: " + res.status + " " + res.error));
+                            });
+                    });
                 }
+
                 return originalFetch(url, opts);
             };
 

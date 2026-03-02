@@ -34,11 +34,15 @@
       "cordova-plugin-android-intent": {},
       "phonegap-plugin-barcodescanner": {
         "ANDROID_SUPPORT_V4_VERSION": "27.+"
+      },
+      "cordova-plugin-advanced-http": {
+        "ANDROIDBLACKLISTSECURESOCKETPROTOCOLS": "SSLv3,TLSv1"
       }
     }
   },
   "devDependencies": {
     "cordova-android": "^14.0.1",
+    "cordova-plugin-advanced-http": "^3.3.1",
     "cordova-plugin-android-intent": "^1.0.0",
     "cordova-plugin-android-permissions": "^1.1.5",
     "cordova-plugin-customurlscheme": "^5.0.2",
