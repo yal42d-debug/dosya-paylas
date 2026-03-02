@@ -1,6 +1,6 @@
 # 📋 Dosya Paylaş — Proje Analizi
 
-> **Son Güncelleme:** 2 Mart 2026 — v1.0.0
+> **Son Güncelleme:** 2 Mart 2026 — v1.3.0
 > Bu dosya her kod değişikliğinde otomatik güncellenir.
 
 ## Genel Bakış
@@ -103,6 +103,7 @@
 | `cordova-plugin-customurlscheme` | `localfileshare://` URL |
 | `cordova-plugin-android-intent` | Android intent desteği |
 | `cordova-plugin-device` | Cihaz bilgisi |
+| `cordova-plugin-advanced-http`| Native HTTP Bypass (Localtunnel için) |
 
 ---
 
@@ -129,7 +130,7 @@
 | 1 | Path traversal | Dosya indirme/silme'de parametre doğrulaması yok | ❌ |
 | 2 | Erişim kontrolü yok | Tüm API'ler kimliksiz açık | ❌ |
 | 3 | `archive.finalize()` 2x | `mobile-app-fixed/server.js` satır 133 | ❌ |
-| 4 | Chat API eksik | `/api/chat` mobil sunucuda tanımlı değil | ❌ |
+| 4 | Chat API | CLI Sunucusuna (/api/chat) eklendi | ✅ |
 | 5 | Firebase API eksik | `/api/firebase/*` ve `/api/qr/custom` yok | ❌ |
 
 ### 🟡 Orta
@@ -149,6 +150,7 @@
 | Tarih | Sürüm | Değişiklik |
 |-------|-------|------------|
 | 2 Mart 2026 | v1.0.0 | İlk analiz oluşturuldu |
+| 2 Mart 2026 | v1.3.0 | Native HTTP ile Localtunnel Bypass (cordova-plugin-advanced-http eklendi, Web UI ve CLI Server güncellendi). Chat API eklendi. |
 
 ---
 

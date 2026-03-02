@@ -15,14 +15,16 @@ curl -sL https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/start-
 
 - **APK-to-APK Paylaşım:** Cihazların QR kodlarını birbirine taratarak doğrudan dosya transferi.
 - **Terminal Arayüzü (CLI):** Projeyi terminalden renkli bir menü ile yönetme.
-- **Otomatik Tünel:** Dış dünyaya kapalı ağlarda bile internet üzerinden erişim.
+- **Native HTTP Tünel (v1.3.0):** (Localtunnel) Dış dünyaya kapalı ağlarda IP sorma duvarına takılmadan (Bypass-Tunnel-Reminder), `cordova-plugin-advanced-http` ile internet üzerinden şifresiz, tek dokunuşla dosya aktarımı.
 - **Kendi Dosya Yöneticisi:** Uygulama içinden indirdiğiniz dosyaları anında görüntüleme.
+- **Mesajlaşma (Chat):** Web ve mobil uygulama üzerinden anlık mesajlaşma desteği.
+- **Dinamik Web Arayüzü:** Tünel durumunu canlı izleme, uzak alan adı girme ve sekme yapısı.
 
 ## 📦 Kurulum (Geliştiriciler İçin)
 
 1. Depoyu klonlayın.
 2. `npm install` komutunu çalıştırın.
-3. Sunucuyu başlatın: `node server.js --tunnel`
+3. Sunucuyu başlatın: `node server.js` (Tünel otomatik başlar ve bağlanır).
 
 ---
 Copyright © 2026 Yalcin Degirmenci. Tüm Hakları Saklıdır.
