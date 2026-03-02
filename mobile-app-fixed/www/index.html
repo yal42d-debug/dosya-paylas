@@ -1175,6 +1175,128 @@
         }
 
 
+        function isTunnelUrl(url) {
+            return url.includes('loca.lt') || url.includes('trycloudflare') ||
+                url.includes('ngrok') || url.includes('localhost.run') ||
+                (url.startsWith('https://') && !url.includes('192.168.') && !url.includes('10.'));
+        }
+
+        function connectToServer(targetUrl) {
+            console.log("Connecting to:", targetUrl);
+            fetch(targetUrl + "/api/info", {
+                headers: { "Bypass-Tunnel-Reminder": "true" }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error("HTTP_" + res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.ip || data.localUrl || data.url) {
+                        BASE_URL = targetUrl;
+                        isRemoteMode = true;
+                        document.getElementById('local-btn').classList.remove('hidden');
+                        alert("Bağlantı Başarılı! Artık bu sunucudaki dosyaları görüyorsunuz.");
+                        startApp();
+                    } else {
+                        alert("Sunucu anlaşılamadı. Dış bağlantı olarak açılıyor.");
+                        window.open(targetUrl, '_system');
+                    }
+                })
+                .catch(err => {
+                    console.error("Connection failed after auth", err);
+                    alert("Sunucuya bağlanılamadı.\n\nİpucu: Tarayıcıda şifreyi doğru girdiğinizden emin olun.");
+                });
+        }
+
+        function openTunnelAuth(targetUrl) {
+            // Open InAppBrowser for tunnel authentication
+            if (!window.cordova || !cordova.InAppBrowser) {
+                // Fallback: open in system browser
+                alert("Tarayıcıda tünel şifresini girin, sonra uygulamaya geri dönüp tekrar deneyin.");
+                window.open(targetUrl, '_system');
+                return;
+            }
+
+            alert("Tünel şifre sayfası açılacak.\n\nPublic IP adresinizi girin ve 'Submit' butonuna basın.\nSayfa yüklendikten sonra 'Bağlan' butonu çıkacak.");
+
+            var browser = cordova.InAppBrowser.open(targetUrl, '_blank',
+                'location=yes,toolbar=yes,closebuttoncaption=İptal,toolbarcolor=#1e1e1e,navigationbuttoncolor=#3b82f6,zoom=no');
+
+            var authCheckInterval = null;
+            var authDone = false;
+
+            // Inject a "Connect" button after page loads
+            browser.addEventListener('loadstop', function (event) {
+                // Check if we're past the auth page (loca.lt shows our app after auth)
+                browser.executeScript({
+                    code: `
+                        (function() {
+                            // Check if this is still the auth page or our actual app
+                            var isAuthPage = document.querySelector('input[name="endpoint"]') || 
+                                             document.querySelector('button[type="submit"]') ||
+                                             document.body.innerText.includes('Friendly Reminder');
+                            
+                            if (!isAuthPage) {
+                                return 'authenticated';
+                            }
+                            
+                            // Add a floating "Bağlan" button if not already added
+                            if (!document.getElementById('share-connect-btn')) {
+                                var btn = document.createElement('button');
+                                btn.id = 'share-connect-btn';
+                                btn.innerHTML = '✅ Şifreyi Girdim - Uygulamaya Dön';
+                                btn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#3b82f6;color:white;border:none;padding:14px 24px;border-radius:12px;font-size:16px;font-weight:bold;z-index:99999;box-shadow:0 4px 15px rgba(0,0,0,0.3);cursor:pointer;';
+                                btn.onclick = function() {
+                                    // Submit the form if there's one
+                                    var form = document.querySelector('form');
+                                    if (form) form.submit();
+                                };
+                                document.body.appendChild(btn);
+                            }
+                            return 'auth_page';
+                        })()
+                    `
+                }, function (results) {
+                    if (results && results[0] === 'authenticated') {
+                        // Already past auth, close browser and connect
+                        authDone = true;
+                        browser.close();
+                    }
+                });
+            });
+
+            // Also periodically check if auth succeeded
+            authCheckInterval = setInterval(function () {
+                if (authDone) {
+                    clearInterval(authCheckInterval);
+                    return;
+                }
+                browser.executeScript({
+                    code: `
+                        (function() {
+                            var isAuthPage = document.querySelector('input[name="endpoint"]') || 
+                                             document.body.innerText.includes('Friendly Reminder');
+                            return isAuthPage ? 'auth_page' : 'authenticated';
+                        })()
+                    `
+                }, function (results) {
+                    if (results && results[0] === 'authenticated') {
+                        authDone = true;
+                        clearInterval(authCheckInterval);
+                        browser.close();
+                    }
+                });
+            }, 2000);
+
+            browser.addEventListener('exit', function () {
+                if (authCheckInterval) clearInterval(authCheckInterval);
+                // Try to connect after browser closes
+                setTimeout(function () {
+                    connectToServer(targetUrl);
+                }, 500);
+            });
+        }
+
         function startQrScan() {
             if (!window.cordova || !cordova.plugins || !cordova.plugins.barcodeScanner) {
                 alert("QR Tarayıcı sadece mobil uygulamada (Android/iOS) çalışır.");
@@ -1190,35 +1312,16 @@
                         if (scannedText.startsWith('http')) {
                             const targetUrl = scannedText.endsWith('/') ? scannedText.slice(0, -1) : scannedText;
 
-                            if (confirm("Bu sunucuya bağlanmak istiyor musunuz?\n" + targetUrl)) {
-                                // Test connection to see if it's our server with Bypass Header
-                                fetch(targetUrl + "/api/info", {
-                                    headers: { "Bypass-Tunnel-Reminder": "true" }
-                                })
-                                    .then(res => {
-                                        if (!res.ok && res.status === 401) throw new Error("Tunnel_Auth_Required");
-                                        return res.json();
-                                    })
-                                    .then(data => {
-                                        if (data.ip || data.localUrl) {
-                                            BASE_URL = targetUrl;
-                                            isRemoteMode = true;
-                                            document.getElementById('local-btn').classList.remove('hidden');
-                                            alert("Bağlantı Başarılı! Artık bu sunucudaki dosyaları görüyorsunuz.");
-                                            startApp(); // Refresh UI with new BASE_URL
-                                        } else {
-                                            alert("Sunucu anlaşılamadı. Dış bağlantı olarak açılıyor.");
-                                            window.open(targetUrl, '_system');
-                                        }
-                                    })
-                                    .catch(err => {
-                                        console.error("Connection failed", err);
-                                        if (targetUrl.includes('loca.lt')) {
-                                            alert("Tünel bağlantısı başarısız oldu. Lütfen önce tarayıcı üzerinden Public IP adresini girerek tüneli aktif edin (Terminalde yazan numara).");
-                                        } else {
-                                            alert("Sunucuya bağlanılamadı. Cihazların aynı ağda olduğundan emin olun.");
-                                        }
-                                    });
+                            if (isTunnelUrl(targetUrl)) {
+                                // Tunnel URL - need browser auth first
+                                if (confirm("Tünel bağlantısı tespit edildi.\nŞifre giriş sayfası açılacak.\n\nDevam etmek istiyor musunuz?\n" + targetUrl)) {
+                                    openTunnelAuth(targetUrl);
+                                }
+                            } else {
+                                // Local network URL - direct connect
+                                if (confirm("Bu sunucuya bağlanmak istiyor musunuz?\n" + targetUrl)) {
+                                    connectToServer(targetUrl);
+                                }
                             }
                         } else {
                             alert("QR İçeriği:\n" + scannedText);
