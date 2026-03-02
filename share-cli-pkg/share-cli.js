@@ -23,6 +23,7 @@ Komutlar:
   upload <dosya>    -> Sunucuya dosya yükler
   download <isim>   -> Sunucudan dosya indirir
   status            -> Mevcut bağlantı durumunu gösterir
+  chat              -> Terminal üzerinden sohbet odasına katılır
 
 Örnek:
   npx share-cli connect http://xyz.loca.lt
@@ -166,6 +167,85 @@ async function run() {
                 uploadStream.on('end', () => {
                     upReq.end(footer);
                 });
+                break;
+
+            case 'chat':
+                const os = require('os');
+                const readline = require('readline');
+                const username = os.userInfo().username || 'CLI-User';
+
+                console.log(`\n💬 Chat Odasına Bağlanıldı (Kullanıcı: ${username})`);
+                console.log('Çıkmak için Ctrl+C veya "exit" yazın\n-----------------------------------');
+
+                const rl = readline.createInterface({
+                    input: process.stdin,
+                    output: process.stdout,
+                    prompt: '> '
+                });
+
+                let lastMsgCount = 0;
+                let isPolling = true;
+
+                async function pollMessages() {
+                    if (!isPolling) return;
+                    try {
+                        const msgs = await request('GET', '/api/chat');
+                        if (msgs.length > lastMsgCount) {
+                            process.stdout.clearLine();
+                            process.stdout.cursorTo(0);
+                            for (let i = lastMsgCount; i < msgs.length; i++) {
+                                const m = msgs[i];
+                                const time = new Date(m.timestamp).toLocaleTimeString();
+                                if (m.sender !== username) {
+                                    console.log(`[${time}] ${m.sender}: ${m.text}`);
+                                }
+                            }
+                            lastMsgCount = msgs.length;
+                            rl.prompt(true);
+                        }
+                    } catch (e) {
+                        // Suppress network errors during polling
+                    }
+                    if (isPolling) setTimeout(pollMessages, 2000);
+                }
+
+                // Get initial messages
+                try {
+                    const initialMsgs = await request('GET', '/api/chat');
+                    lastMsgCount = initialMsgs.length;
+                    for (let m of initialMsgs) {
+                        const time = new Date(m.timestamp).toLocaleTimeString();
+                        console.log(`[${time}] ${m.sender}: ${m.text}`);
+                    }
+                } catch (e) { }
+
+                rl.prompt();
+                pollMessages();
+
+                rl.on('line', async (line) => {
+                    const text = line.trim();
+                    if (text.toLowerCase() === 'exit') {
+                        rl.close();
+                        return;
+                    }
+                    if (text) {
+                        try {
+                            await request('POST', '/api/chat', { sender: username, text });
+                            // The typed text is already on the terminal from readline, 
+                            // we just wait for the next prompt.
+                        } catch (e) {
+                            console.log('❌ Gönderilemedi:', e.message);
+                        }
+                    }
+                    rl.prompt();
+                }).on('close', () => {
+                    isPolling = false;
+                    console.log('\n🔴 Chat odasından ayrıldınız.');
+                    process.exit(0);
+                });
+
+                // Keep the process alive for the chat loop
+                await new Promise(() => { });
                 break;
 
             default:
