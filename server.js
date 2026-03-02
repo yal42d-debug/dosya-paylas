@@ -153,7 +153,39 @@ app.delete('/api/files/:filename', (req, res) => {
   } else res.status(404).send('Not found');
 });
 
-// Tunnel Management
+// Chat Storage (In-Memory)
+const messages = [];
+
+// --- Chat API ---
+app.get('/api/chat', (req, res) => {
+  res.json(messages);
+});
+
+app.post('/api/chat', (req, res) => {
+  const { sender, text } = req.body;
+  if (!sender || !text) return res.status(400).json({ error: 'Missing fields' });
+
+  const msg = {
+    id: Date.now(),
+    sender,
+    text,
+    timestamp: new Date().toISOString()
+  };
+  messages.push(msg);
+  if (messages.length > 50) messages.shift();
+
+  res.json({ success: true, message: msg });
+});
+
+// --- Tunnel Management ---
+app.post('/api/tunnel/set-url', (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'Missing url' });
+  currentTunnelUrl = url;
+  console.log('External tunnel URL set:', url);
+  res.json({ message: 'External tunnel URL set', url: currentTunnelUrl });
+});
+
 app.get('/api/tunnel/status', (req, res) => {
   res.json({ running: !!currentTunnelUrl, url: currentTunnelUrl });
 });
