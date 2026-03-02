@@ -356,7 +356,7 @@
         <div class="tunnel-control">
             <div class="tunnel-status">
                 <div class="status-dot" id="status-dot"></div>
-                <span id="status-text">Bağlantı Kapalı</span>
+                <span id="status-text">Yerel Mod</span>
             </div>
             <button class="switch-btn" id="tunnel-btn" onclick="toggleTunnel()">Dışarı Aç</button>
         </div>
@@ -459,6 +459,7 @@
         let isTunnelRunning = false;
         let tunnelUrl = null;
         let localQrData = null;
+        let serverLocalIp = '';
 
         // Init
         function startApp() {
@@ -489,6 +490,12 @@
         function updateRemoteTabUI() {
             const container = document.getElementById('remote-qr-container');
             const placeholder = document.getElementById('remote-placeholder');
+
+            // Show real IP in the placeholder command
+            if (serverLocalIp) {
+                const cmdEl = placeholder.querySelector('p[style*="monospace"]');
+                if (cmdEl) cmdEl.textContent = 'cloudflared tunnel --url http://' + serverLocalIp + ':3000';
+            }
 
             if (isTunnelRunning && tunnelUrl) {
                 container.style.display = 'block';
@@ -556,6 +563,7 @@
                 .then(data => {
                     localQrData = data.qrCode;
                     document.getElementById('qr-local-img').src = localQrData;
+                    if (data.ip) serverLocalIp = data.ip;
                 });
         }
 
@@ -577,12 +585,12 @@
         function updateTunnelUI(running, url) {
             if (running) {
                 statusDot.classList.add('active');
-                statusText.textContent = "Online";
+                statusText.textContent = "Dış Erişim Açık";
                 tunnelBtn.textContent = "Kapat";
                 tunnelBtn.classList.add('active');
             } else {
                 statusDot.classList.remove('active');
-                statusText.textContent = "Offline";
+                statusText.textContent = "Yerel Mod";
                 tunnelBtn.textContent = "Dışarı Aç";
                 tunnelBtn.classList.remove('active');
             }
@@ -770,4 +778,5 @@
         startApp();
     </script>
 </body>
+
 </html>
