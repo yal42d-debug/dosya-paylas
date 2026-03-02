@@ -1217,80 +1217,13 @@
                 return;
             }
 
-            alert("Tünel şifre sayfası açılacak.\n\nPublic IP adresinizi girin ve 'Submit' butonuna basın.\nSayfa yüklendikten sonra 'Bağlan' butonu çıkacak.");
+            alert("Şifre sayfası açılacak.\n\n1) Public IP adresinizi girin\n2) Submit butonuna basın\n3) Sayfa yüklendikten sonra sol üstteki 'Bağlan' butonuna basın");
 
             var browser = cordova.InAppBrowser.open(targetUrl, '_blank',
-                'location=yes,toolbar=yes,closebuttoncaption=İptal,toolbarcolor=#1e1e1e,navigationbuttoncolor=#3b82f6,zoom=no');
+                'location=yes,toolbar=yes,closebuttoncaption=Bağlan,toolbarcolor=#1e1e1e,navigationbuttoncolor=#3b82f6,zoom=no,footer=no');
 
-            var authCheckInterval = null;
-            var authDone = false;
-
-            // Inject a "Connect" button after page loads
-            browser.addEventListener('loadstop', function (event) {
-                // Check if we're past the auth page (loca.lt shows our app after auth)
-                browser.executeScript({
-                    code: `
-                        (function() {
-                            // Check if this is still the auth page or our actual app
-                            var isAuthPage = document.querySelector('input[name="endpoint"]') || 
-                                             document.querySelector('button[type="submit"]') ||
-                                             document.body.innerText.includes('Friendly Reminder');
-                            
-                            if (!isAuthPage) {
-                                return 'authenticated';
-                            }
-                            
-                            // Add a floating "Bağlan" button if not already added
-                            if (!document.getElementById('share-connect-btn')) {
-                                var btn = document.createElement('button');
-                                btn.id = 'share-connect-btn';
-                                btn.innerHTML = '✅ Şifreyi Girdim - Uygulamaya Dön';
-                                btn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#3b82f6;color:white;border:none;padding:14px 24px;border-radius:12px;font-size:16px;font-weight:bold;z-index:99999;box-shadow:0 4px 15px rgba(0,0,0,0.3);cursor:pointer;';
-                                btn.onclick = function() {
-                                    // Submit the form if there's one
-                                    var form = document.querySelector('form');
-                                    if (form) form.submit();
-                                };
-                                document.body.appendChild(btn);
-                            }
-                            return 'auth_page';
-                        })()
-                    `
-                }, function (results) {
-                    if (results && results[0] === 'authenticated') {
-                        // Already past auth, close browser and connect
-                        authDone = true;
-                        browser.close();
-                    }
-                });
-            });
-
-            // Also periodically check if auth succeeded
-            authCheckInterval = setInterval(function () {
-                if (authDone) {
-                    clearInterval(authCheckInterval);
-                    return;
-                }
-                browser.executeScript({
-                    code: `
-                        (function() {
-                            var isAuthPage = document.querySelector('input[name="endpoint"]') || 
-                                             document.body.innerText.includes('Friendly Reminder');
-                            return isAuthPage ? 'auth_page' : 'authenticated';
-                        })()
-                    `
-                }, function (results) {
-                    if (results && results[0] === 'authenticated') {
-                        authDone = true;
-                        clearInterval(authCheckInterval);
-                        browser.close();
-                    }
-                });
-            }, 2000);
-
+            // When user closes the browser (taps "Bağlan" or back), try connecting
             browser.addEventListener('exit', function () {
-                if (authCheckInterval) clearInterval(authCheckInterval);
-                // Try to connect after browser closes
                 setTimeout(function () {
                     connectToServer(targetUrl);
                 }, 500);
