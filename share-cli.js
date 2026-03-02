@@ -202,6 +202,67 @@ async function handleUpload() {
     await question("\nDevam etmek için Enter...");
 }
 
+async function handleChat() {
+    const os = require('os');
+    const username = os.userInfo().username || 'CLI-User';
+
+    console.log(`\n${colors.bright}${colors.cyan}💬 Chat Odasına Bağlanıldı (Kullanıcı: ${username})${colors.reset}`);
+    console.log(`${colors.dim}Çıkmak için "exit" yazın\n-----------------------------------${colors.reset}`);
+
+    let lastMsgCount = 0;
+    let isPolling = true;
+
+    async function pollMessages() {
+        if (!isPolling) return;
+        try {
+            const msgs = await request('GET', '/api/chat');
+            if (msgs.length > lastMsgCount) {
+                process.stdout.clearLine();
+                process.stdout.cursorTo(0);
+                for (let i = lastMsgCount; i < msgs.length; i++) {
+                    const m = msgs[i];
+                    const time = new Date(m.timestamp).toLocaleTimeString();
+                    if (m.sender !== username) {
+                        console.log(`${colors.cyan}[${time}] ${m.sender}:${colors.reset} ${m.text}`);
+                    }
+                }
+                lastMsgCount = msgs.length;
+                process.stdout.write('> '); // Prompt'u yeniden yazdır
+            }
+        } catch (e) { }
+        if (isPolling) setTimeout(pollMessages, 2000);
+    }
+
+    try {
+        const initialMsgs = await request('GET', '/api/chat');
+        lastMsgCount = initialMsgs.length;
+        for (let m of initialMsgs) {
+            const time = new Date(m.timestamp).toLocaleTimeString();
+            console.log(`${colors.cyan}[${time}] ${m.sender}:${colors.reset} ${m.text}`);
+        }
+    } catch (e) { }
+
+    pollMessages();
+
+    while (true) {
+        const msg = await question('> ');
+        if (msg.trim().toLowerCase() === 'exit') {
+            isPolling = false;
+            console.log(`\n${colors.red}🔴 Chat odasından ayrıldınız.${colors.reset}`);
+            break;
+        }
+        if (msg.trim()) {
+            try {
+                await request('POST', '/api/chat', { sender: username, text: msg.trim() });
+            } catch (e) {
+                console.log(`${colors.red}❌ Gönderilemedi: ${e.message}${colors.reset}`);
+            }
+        }
+    }
+
+    await question("\nDevam etmek için Enter...");
+}
+
 // --- SERVER START ---
 async function startLocalServer() {
     const serverPath = path.join(__dirname, 'server.js');
@@ -455,7 +516,12 @@ async function mainMenu() {
             console.log(`${colors.dim}6. 📂 Paylaşılan Klasörü Değiştir (kendi sunucunuzda çalışır)${colors.reset}`);
         }
         console.log(`${colors.yellow}7.${colors.reset} 📲 Sunucu Bilgileri & QR Kodları`);
-        console.log(`${colors.red}8.${colors.reset} 🚪 Çıkış`);
+        if (isConnected) {
+            console.log(`${colors.magenta}8.${colors.reset} 💬 Chat Odasına Katıl`);
+        } else {
+            console.log(`${colors.dim}8. 💬 Chat Odasına Katıl (bağlantı gerekli)${colors.reset}`);
+        }
+        console.log(`${colors.red}9.${colors.reset} 🚪 Çıkış`);
 
         const choice = await question(`\n${colors.magenta}Seçiminiz: ${colors.reset}`);
 
@@ -518,7 +584,10 @@ async function mainMenu() {
                 }
                 await question("\nDevam etmek için Enter...");
             }
-            else if (choice === '8') {
+            else if (choice === '8' && isConnected) {
+                await handleChat();
+            }
+            else if (choice === '9') {
                 if (serverProcess) {
                     console.log(`${colors.yellow}Sunucu kapatılıyor...${colors.reset}`);
                     serverProcess.kill();
@@ -526,7 +595,7 @@ async function mainMenu() {
                 console.log("Güle güle!");
                 process.exit(0);
             }
-            else if (['1', '2', '3'].includes(choice) && !isConnected) {
+            else if (['1', '2', '3', '8'].includes(choice) && !isConnected) {
                 console.log(`${colors.red}⚠️  Önce bir sunucuya bağlanmalısınız. (Seçenek 4)${colors.reset}`);
                 await question("\nEnter...");
             }
