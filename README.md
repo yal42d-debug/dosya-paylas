@@ -4,12 +4,19 @@ Bu proje, yerel ağda ve internet üzerinde cihazlar arası (APK'dan APK'ya, Web
 
 ## 🛠 Hızlı Başlat (Sunucu + Arayüz)
 
-Artık sunucuyu ayrı, arayüzü ayrı başlatmanıza gerek yok! Terminale şu tek satırı yapıştırın, sistem hem sunucuyu arka planda kurar hem de arayüzü açar:
+Artık sunucuyu ayrı, arayüzü ayrı başlatmanıza gerek yok! Terminale/CMD'ye şu tek satırı yapıştırın, sistem hem sunucuyu arka planda kurar hem de CLI arayüzünü açar:
 
+**Mac & Linux & Termux için:**
 ```bash
 curl -sL https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/start-share.sh | bash
 ```
-*(Not: Bu komut sunucuyu kontrol eder, kapalıysa otomatik başlatır.)*
+
+**Windows (CMD veya PowerShell) için:**
+```powershell
+powershell -Command "irm https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/start-share.ps1 | iex"
+```
+
+*(Not: Bu komutlar sunucuyu kontrol eder, kapalıysa arka planda otomatik başlatır.)*
 
 ## ✨ Özellikler
 
