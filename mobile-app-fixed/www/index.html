@@ -1055,7 +1055,10 @@
             div.innerHTML = `
                 <div class="dl-toast-header">
                     <span class="dl-toast-name" title="${filename}">${filename}</span>
-                    <span id="${safeId}-perc">0%</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="${safeId}-perc">0%</span>
+                        <span onclick="cancelDownload('${encodeURIComponent(filename)}')" style="cursor:pointer; color:#ef4444; font-weight:bold; font-size:1.2rem; line-height:1;" title="İptal Et">&times;</span>
+                    </div>
                 </div>
                 <div class="dl-toast-progress-bg">
                     <div id="${safeId}-bar" class="dl-toast-progress-bar"></div>
@@ -1063,6 +1066,18 @@
             `;
             container.appendChild(div);
             return safeId;
+        }
+
+        function cancelDownload(encodedFilename) {
+            const decodedName = decodeURIComponent(encodedFilename);
+            if (activeDownloads[decodedName] && activeDownloads[decodedName].ft) {
+                activeDownloads[decodedName].ft.abort();
+            }
+            hideToast(decodedName);
+            delete activeDownloads[decodedName];
+            if (document.getElementById('downloads-modal').classList.contains('open')) {
+                loadDownloadedFiles();
+            }
         }
 
         function updateToast(filename, perc) {
@@ -1121,18 +1136,53 @@
 
         function startDownload(url, decodedName) {
             const targetPath = getDownloadDir() + decodedName;
+
+            window.resolveLocalFileSystemURL(targetPath, function (fileEntry) {
+                // Dosya zaten var
+                if (confirm("Bu klasörde '" + decodedName + "' adına sahip bir dosya zaten var. Yine de indirmek istiyor musunuz? (İsminin sonuna numara eklenecektir)")) {
+                    let ext = '';
+                    let nameTitle = decodedName;
+                    const lastDot = decodedName.lastIndexOf('.');
+                    if (lastDot > 0) {
+                        ext = decodedName.substring(lastDot);
+                        nameTitle = decodedName.substring(0, lastDot);
+                    }
+                    let counter = 1;
+                    function tryDownloadNext() {
+                        const newName = nameTitle + ' (' + counter + ')' + ext;
+                        const newPath = getDownloadDir() + newName;
+                        window.resolveLocalFileSystemURL(newPath, function () {
+                            // Var, artır
+                            counter++;
+                            tryDownloadNext();
+                        }, function () {
+                            // Yok, indir
+                            doActualDownload(url, newName, newPath);
+                        });
+                    }
+                    tryDownloadNext();
+                }
+            }, function () {
+                // Dosya yok, normal indir
+                doActualDownload(url, decodedName, targetPath);
+            });
+        }
+
+        function doActualDownload(url, displayFileName, targetPath) {
             const ft = new FileTransfer();
             const options = { headers: { "Bypass-Tunnel-Reminder": "true" } };
 
-            showToast(decodedName);
-            activeDownloads[decodedName] = { progress: 0 };
+            showToast(displayFileName);
+            activeDownloads[displayFileName] = { progress: 0, ft: ft };
 
             ft.onprogress = function (pe) {
                 if (pe.lengthComputable) {
                     const perc = Math.floor((pe.loaded / pe.total) * 100);
-                    activeDownloads[decodedName].progress = perc;
-                    updateToast(decodedName, perc);
-                    const dlItemPerc = document.getElementById('dl-perc-' + getSafeId(decodedName));
+                    if (activeDownloads[displayFileName]) {
+                        activeDownloads[displayFileName].progress = perc;
+                    }
+                    updateToast(displayFileName, perc);
+                    const dlItemPerc = document.getElementById('dl-perc-' + getSafeId(displayFileName));
                     if (dlItemPerc) dlItemPerc.textContent = '% ' + perc;
                 }
             };
@@ -1141,8 +1191,8 @@
                 url,
                 targetPath,
                 function (entry) {
-                    delete activeDownloads[decodedName];
-                    hideToast(decodedName);
+                    delete activeDownloads[displayFileName];
+                    hideToast(displayFileName);
 
                     // Android 11+ Public Folder okuma hatasını aşmak için listeyi local'e de kaydediyoruz
                     let saved = JSON.parse(localStorage.getItem('my_downloads') || '[]');
@@ -1157,21 +1207,23 @@
                         if (cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
                             cordova.plugins.notification.local.schedule({
                                 title: 'İndirme Tamamlandı',
-                                text: decodedName + ' klasörünüze başarıyla indirildi.',
+                                text: displayFileName + ' başarıyla indirildi.',
                                 foreground: true
                             });
                         } else {
-                            alert("İndirme Tamamlandı:\n" + decodedName);
+                            alert("İndirme Tamamlandı:\n" + displayFileName);
                         }
                     } catch (e) { }
                 },
                 function (error) {
-                    delete activeDownloads[decodedName];
-                    hideToast(decodedName);
+                    delete activeDownloads[displayFileName];
+                    hideToast(displayFileName);
                     if (document.getElementById('downloads-modal').classList.contains('open')) {
                         loadDownloadedFiles();
                     }
-                    alert("İndirme hatası: " + error.code);
+                    if (error.code !== 4) { // 4 = ABORT_ERR
+                        alert("İndirme hatası: " + error.code);
+                    }
                 },
                 true,
                 options
@@ -1237,7 +1289,10 @@
                 const progressText = isDownloading ? `<span style="color: var(--primary-color); font-size: 0.75rem;"><strong id="${percId}">% ${activeDownloads[file.name] ? activeDownloads[file.name].progress : 0}</strong> İniyor...</span>` : '';
 
                 const actionButtons = isDownloading
-                    ? `<span style="font-size: 0.8rem; color: var(--secondary-text);">İndiriliyor</span>`
+                    ? `<span style="font-size: 0.8rem; color: var(--secondary-text);">İndiriliyor</span>
+                       <button class="action-btn delete-btn" onclick="cancelDownload('${encodeURIComponent(file.name)}')" title="İptal Et" style="padding:4px; margin-left:8px;">
+                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                       </button>`
                     : `
                         <button class="action-btn" onclick="openOfflineFile('${file.nativeURL}')" style="color: var(--success-color);">
                             Aç

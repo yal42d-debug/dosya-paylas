@@ -127,9 +127,30 @@ async function run() {
                 const res = await request('GET', `/api/download/${encodeURIComponent(fileName)}`, null, true);
                 if (res.statusCode !== 200) return console.log('❌ Hata: Dosya bulunamadı.');
 
-                const fileStream = fs.createWriteStream(fileName);
+                let downloadsDir;
+                if (process.env.PREFIX && process.env.PREFIX.includes('com.termux')) {
+                    downloadsDir = path.join(process.env.HOME, 'storage', 'downloads');
+                } else {
+                    const home = process.env.HOME || process.env.USERPROFILE || require('os').homedir();
+                    downloadsDir = path.join(home, 'Downloads');
+                }
+
+                if (!fs.existsSync(downloadsDir)) {
+                    try { fs.mkdirSync(downloadsDir, { recursive: true }); } catch (e) { }
+                }
+
+                let filePath = path.join(downloadsDir, fileName);
+                let counter = 1;
+                let ext = path.extname(fileName);
+                let base = path.basename(fileName, ext);
+                while (fs.existsSync(filePath)) {
+                    filePath = path.join(downloadsDir, `${base}(${counter})${ext}`);
+                    counter++;
+                }
+
+                const fileStream = fs.createWriteStream(filePath);
                 res.pipe(fileStream);
-                fileStream.on('finish', () => console.log(`✅ Tamamlandı: ${fileName}`));
+                fileStream.on('finish', () => console.log(`✅ İndirilenler klasörüne tamamlandı:\n   ${filePath}`));
                 break;
 
             case 'upload':

@@ -156,10 +156,32 @@ async function handleDownload() {
         const fileName = files[index].name;
         console.log(`${colors.cyan}⏳ ${fileName} indiriliyor...${colors.reset}`);
         const res = await request('GET', `/download/${encodeURIComponent(fileName)}`, null, true);
-        const fileStream = fs.createWriteStream(fileName);
+
+        let downloadsDir;
+        if (process.env.PREFIX && process.env.PREFIX.includes('com.termux')) {
+            downloadsDir = path.join(process.env.HOME, 'storage', 'downloads');
+        } else {
+            const home = process.env.HOME || process.env.USERPROFILE || require('os').homedir();
+            downloadsDir = path.join(home, 'Downloads');
+        }
+
+        if (!fs.existsSync(downloadsDir)) {
+            try { fs.mkdirSync(downloadsDir, { recursive: true }); } catch (e) { }
+        }
+
+        let filePath = path.join(downloadsDir, fileName);
+        let counter = 1;
+        let ext = path.extname(fileName);
+        let base = path.basename(fileName, ext);
+        while (fs.existsSync(filePath)) {
+            filePath = path.join(downloadsDir, `${base}(${counter})${ext}`);
+            counter++;
+        }
+
+        const fileStream = fs.createWriteStream(filePath);
         res.pipe(fileStream);
         await new Promise(r => fileStream.on('finish', r));
-        console.log(`${colors.green}✅ Başarıyla indirildi: ${fileName}${colors.reset}`);
+        console.log(`${colors.green}✅ Başarıyla İndirilenler klasörüne kaydedildi:\n   ${filePath}${colors.reset}`);
     }
     await question("\nDevam etmek için Enter...");
 }
