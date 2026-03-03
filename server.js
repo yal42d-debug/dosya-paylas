@@ -212,32 +212,32 @@ app.post('/api/tunnel/stop', (req, res) => {
 
 // START LOGIC
 async function startServer() {
-  console.log('📡 Tünel/Dış Bağlantı başlatılıyor (localtunnel)...');
+  app.listen(PORT, '0.0.0.0', async () => {
+    console.log('📡 Tünel/Dış Bağlantı başlatılıyor (localtunnel)...');
 
-  async function attemptTunnel(retries = 3) {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const tunnel = await localtunnel({ port: PORT });
-        tunnel.on('error', (err) => {
-          console.error('❌ Tünel koptu:', err.message);
-          currentTunnelUrl = null;
-        });
-        currentTunnelUrl = tunnel.url;
-        if (currentTunnelUrl) {
-          console.log(`✅ Tünel aktif: ${currentTunnelUrl}`);
-          return true;
+    async function attemptTunnel(retries = 3) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const tunnel = await localtunnel({ port: PORT });
+          tunnel.on('error', (err) => {
+            console.error('❌ Tünel koptu:', err.message);
+            currentTunnelUrl = null;
+          });
+          currentTunnelUrl = tunnel.url;
+          if (currentTunnelUrl) {
+            console.log(`✅ Tünel aktif: ${currentTunnelUrl}`);
+            return true;
+          }
+        } catch (e) {
+          console.warn(`⚠️ Tünel denemesi ${i + 1} başarısız...`);
+          await new Promise(r => setTimeout(r, 2000));
         }
-      } catch (e) {
-        console.warn(`⚠️ Tünel denemesi ${i + 1} başarısız...`);
-        await new Promise(r => setTimeout(r, 2000));
       }
+      return false;
     }
-    return false;
-  }
 
-  await attemptTunnel();
+    await attemptTunnel();
 
-  app.listen(PORT, '0.0.0.0', () => {
     console.clear();
     console.log('\x1b[36m%s\x1b[0m', '===================================================');
     console.log('\x1b[32m%s\x1b[0m', '🚀 DOSYA PAYLAŞIM SUNUCUSU AKTİF');
