@@ -28,6 +28,7 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 
 // Global state
 let currentTunnelUrl = null;
+let tunnelError = null;
 let publicIp = 'Yükleniyor...';
 const localIp = ip.address();
 const serverUrl = `http://${localIp}:${PORT}`;
@@ -74,6 +75,7 @@ app.get('/api/info', async (req, res) => {
     res.json({
       localUrl: serverUrl,
       tunnelUrl: currentTunnelUrl,
+      tunnelError: tunnelError,
       ip: localIp,
       publicIp: publicIp,
       port: PORT,
@@ -218,10 +220,12 @@ async function startServer() {
     async function attemptTunnel(retries = 3) {
       for (let i = 0; i < retries; i++) {
         try {
+          tunnelError = null;
           const tunnel = await localtunnel({ port: PORT });
           tunnel.on('error', (err) => {
             console.error('❌ Tünel koptu:', err.message);
             currentTunnelUrl = null;
+            tunnelError = err.message;
           });
           currentTunnelUrl = tunnel.url;
           if (currentTunnelUrl) {
@@ -230,6 +234,7 @@ async function startServer() {
           }
         } catch (e) {
           console.warn(`⚠️ Tünel denemesi ${i + 1} başarısız...`);
+          tunnelError = e.message;
           await new Promise(r => setTimeout(r, 2000));
         }
       }

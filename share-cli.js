@@ -502,6 +502,8 @@ async function printBanner() {
         }
         if (tunnelUrl) {
             console.log(`${colors.yellow}🌍 Tünel:${colors.reset}   ${tunnelUrl}`);
+        } else if (serverInfo.tunnelError) {
+            console.log(`${colors.red}🌍 Tünel Hatası:${colors.reset} ${serverInfo.tunnelError}`);
         }
         if (serverInfo.shareDir) {
             console.log(`${colors.yellow}📂 Klasör:${colors.reset}  ${serverInfo.shareDir}`);
@@ -598,6 +600,10 @@ async function mainMenu() {
                         } else {
                             console.log(`${colors.cyan}(QR Kodu için: npm install qrcode-terminal)${colors.reset}`);
                         }
+                    } else if (info.tunnelError) {
+                        console.log(`\n${colors.red}❌ İNTERNET/TÜNEL BAĞLANTISI HATASI:${colors.reset}`);
+                        console.log(`${info.tunnelError}`);
+                        console.log(`${colors.cyan}(Tavsiye: 5 numaralı menüden tüneli manuel başlatmayı deneyin)${colors.reset}`);
                     }
 
                     if (info.publicIp) {

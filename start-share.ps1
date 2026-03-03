@@ -65,6 +65,10 @@ if (-not $serverRunning) {
                         Write-Host "`n✅ Tunel hazir: $($json.tunnelUrl)" -ForegroundColor Green
                         break
                     }
+                    if ($null -ne $json.tunnelError -and $json.tunnelError -ne "") {
+                        Write-Host "`n❌ Tunel hatasi: $($json.tunnelError)" -ForegroundColor Red
+                        break
+                    }
                     $check = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
                 } catch { }
                 Write-Host "." -NoNewline
