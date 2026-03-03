@@ -56,6 +56,22 @@ if (-not $serverRunning) {
             $check = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
             Write-Host "`n✅ Sunucu basariyla baslatildi!" -ForegroundColor Green
             $serverRunning = $true
+            
+            Write-Host "⏳ Dis baglanti (Tunel) adresi aliniyor" -NoNewline -ForegroundColor Cyan
+            for ($j=1; $j -le 10; $j++) {
+                try {
+                    $json = $check.Content | ConvertFrom-Json
+                    if ($null -ne $json.tunnelUrl -and $json.tunnelUrl -ne "") {
+                        Write-Host "`n✅ Tunel hazir: $($json.tunnelUrl)" -ForegroundColor Green
+                        break
+                    }
+                    $check = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
+                } catch { }
+                Write-Host "." -NoNewline
+                Start-Sleep -Seconds 1
+            }
+            Write-Host ""
+            
             break
         } catch {
             # Bekliyor

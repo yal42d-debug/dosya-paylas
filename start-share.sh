@@ -71,6 +71,20 @@ if [ "$SERVER_RUNNING" = false ]; then
             echo -e "${NC}"
             echo -e "${GREEN}✅ Sunucu başarıyla başlatıldı!${NC}"
             SERVER_RUNNING=true
+
+            echo -ne "${BLUE}⏳ Dış bağlantı (Tünel) adresi alınıyor"
+            for j in {1..10}; do
+                TUNNEL_URL=$(curl -s http://localhost:3000/api/info 2>/dev/null | grep -o '"tunnelUrl":"[^"]*"' | cut -d'"' -f4)
+                if [ -n "$TUNNEL_URL" ] && [ "$TUNNEL_URL" != "null" ]; then
+                    echo -e "${NC}"
+                    echo -e "${GREEN}✅ Tünel hazır: $TUNNEL_URL${NC}"
+                    break
+                fi
+                echo -n "."
+                sleep 1
+            done
+            echo -e "${NC}"
+
             break
         fi
     done
