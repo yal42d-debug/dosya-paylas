@@ -32,9 +32,9 @@ try {
 
 if (-not $serverRunning) {
     Write-Host "🌐 Sunucu baslatiliyor..." -ForegroundColor Yellow
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js" -OutFile "server.js" -UseBasicParsing
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(Get-Random)" -OutFile "server.js" -UseBasicParsing
     New-Item -ItemType Directory -Force -Path "public" | Out-Null
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html" -OutFile "public\index.html" -UseBasicParsing
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html?v=$(Get-Random)" -OutFile "public\index.html" -UseBasicParsing
     
     if (-not (Test-Path "server.js")) {
         Write-Host "❌ server.js indirilemedi. Internet baglantinizi kontrol edin." -ForegroundColor Red
@@ -89,7 +89,7 @@ if (-not $serverRunning) {
 }
 
 Write-Host "📥 CLI araci indiriliyor..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js" -OutFile "share-cli.js" -UseBasicParsing
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(Get-Random)" -OutFile "share-cli.js" -UseBasicParsing
 
 if (Test-Path "share-cli.js") {
     Write-Host "✅ Baslatiliyor..." -ForegroundColor Green
