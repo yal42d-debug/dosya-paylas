@@ -1089,6 +1089,7 @@
         }
 
         function getDownloadDir() {
+            if (cordova.file.externalRootDirectory) return cordova.file.externalRootDirectory + 'Download/';
             if (cordova.file.externalDataDirectory) return cordova.file.externalDataDirectory;
             return cordova.file.dataDirectory;
         }
@@ -1097,64 +1098,84 @@
             const decodedName = decodeURIComponent(filename);
             const url = BASE_URL + '/download/' + filename;
             if (window.cordova && window.FileTransfer) {
-                const targetPath = getDownloadDir() + decodedName;
-
-                const ft = new FileTransfer();
-                const options = {
-                    headers: {
-                        "Bypass-Tunnel-Reminder": "true"
+                const permissions = cordova.plugins.permissions;
+                permissions.checkPermission(permissions.WRITE_EXTERNAL_STORAGE, function (status) {
+                    if (status.hasPermission) {
+                        startDownload(url, decodedName);
+                    } else {
+                        permissions.requestPermission(permissions.WRITE_EXTERNAL_STORAGE, function (status) {
+                            // On Android 13+, status.hasPermission might be false for WRITE_EXTERNAL_STORAGE 
+                            // even though we can write to public Download folder. 
+                            // So we just try to download anyway.
+                            startDownload(url, decodedName);
+                        }, function () {
+                            // Fallback, just try to download
+                            startDownload(url, decodedName);
+                        });
                     }
-                };
-
-                showToast(decodedName);
-                activeDownloads[decodedName] = { progress: 0 };
-
-                ft.onprogress = function (pe) {
-                    if (pe.lengthComputable) {
-                        const perc = Math.floor((pe.loaded / pe.total) * 100);
-                        activeDownloads[decodedName].progress = perc;
-                        updateToast(decodedName, perc);
-
-                        const dlItemPerc = document.getElementById('dl-perc-' + getSafeId(decodedName));
-                        if (dlItemPerc) dlItemPerc.textContent = '% ' + perc;
-                    }
-                };
-
-                ft.download(
-                    url,
-                    targetPath,
-                    function (entry) {
-                        delete activeDownloads[decodedName];
-                        hideToast(decodedName);
-                        if (document.getElementById('downloads-modal').classList.contains('open')) {
-                            loadDownloadedFiles();
-                        }
-                        try {
-                            if (cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
-                                cordova.plugins.notification.local.schedule({
-                                    title: 'İndirme Tamamlandı',
-                                    text: decodedName + ' başarıyla indirildi.',
-                                    foreground: true
-                                });
-                            } else {
-                                alert("İndirme Tamamlandı:\n" + decodedName);
-                            }
-                        } catch (e) { }
-                    },
-                    function (error) {
-                        delete activeDownloads[decodedName];
-                        hideToast(decodedName);
-                        if (document.getElementById('downloads-modal').classList.contains('open')) {
-                            loadDownloadedFiles();
-                        }
-                        alert("İndirme hatası: " + error.code);
-                    },
-                    true, // trustAllHosts
-                    options
-                );
+                });
             } else {
                 window.location.href = url;
             }
+        }
+
+        function startDownload(url, decodedName) {
+            const targetPath = getDownloadDir() + decodedName;
+            const ft = new FileTransfer();
+            const options = { headers: { "Bypass-Tunnel-Reminder": "true" } };
+
+            showToast(decodedName);
+            activeDownloads[decodedName] = { progress: 0 };
+
+            ft.onprogress = function (pe) {
+                if (pe.lengthComputable) {
+                    const perc = Math.floor((pe.loaded / pe.total) * 100);
+                    activeDownloads[decodedName].progress = perc;
+                    updateToast(decodedName, perc);
+                    const dlItemPerc = document.getElementById('dl-perc-' + getSafeId(decodedName));
+                    if (dlItemPerc) dlItemPerc.textContent = '% ' + perc;
+                }
+            };
+
+            ft.download(
+                url,
+                targetPath,
+                function (entry) {
+                    delete activeDownloads[decodedName];
+                    hideToast(decodedName);
+
+                    // Android 11+ Public Folder okuma hatasını aşmak için listeyi local'e de kaydediyoruz
+                    let saved = JSON.parse(localStorage.getItem('my_downloads') || '[]');
+                    saved = saved.filter(f => f.name !== entry.name);
+                    saved.push({ name: entry.name, nativeURL: entry.nativeURL });
+                    localStorage.setItem('my_downloads', JSON.stringify(saved));
+
+                    if (document.getElementById('downloads-modal').classList.contains('open')) {
+                        loadDownloadedFiles();
+                    }
+                    try {
+                        if (cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
+                            cordova.plugins.notification.local.schedule({
+                                title: 'İndirme Tamamlandı',
+                                text: decodedName + ' klasörünüze başarıyla indirildi.',
+                                foreground: true
+                            });
+                        } else {
+                            alert("İndirme Tamamlandı:\n" + decodedName);
+                        }
+                    } catch (e) { }
+                },
+                function (error) {
+                    delete activeDownloads[decodedName];
+                    hideToast(decodedName);
+                    if (document.getElementById('downloads-modal').classList.contains('open')) {
+                        loadDownloadedFiles();
+                    }
+                    alert("İndirme hatası: " + error.code);
+                },
+                true,
+                options
+            );
         }
 
 
@@ -1174,58 +1195,100 @@
             const dlList = document.getElementById('downloads-list');
             dlList.innerHTML = '<li style="text-align:center; padding: 10px; color: var(--secondary-text);">Yükleniyor...</li>';
 
-            window.resolveLocalFileSystemURL(getDownloadDir(), function (dirEntry) {
-                var dirReader = dirEntry.createReader();
-                dirReader.readEntries(function (entries) {
-                    dlList.innerHTML = '';
-                    if (entries.length === 0) {
-                        dlList.innerHTML = '<li style="text-align:center; padding: 10px; color: var(--secondary-text);">İndirilen dosya yok.</li>';
-                        return;
+            if (window.cordova && cordova.plugins.permissions) {
+                const permissions = cordova.plugins.permissions;
+                permissions.checkPermission(permissions.READ_EXTERNAL_STORAGE, function (status) {
+                    if (status.hasPermission) {
+                        doLoadDownloadedFiles(dlList);
+                    } else {
+                        permissions.requestPermission(permissions.READ_EXTERNAL_STORAGE, function (status) {
+                            // On Android 13+, it might be false, but try anyway
+                            doLoadDownloadedFiles(dlList);
+                        }, function () {
+                            doLoadDownloadedFiles(dlList);
+                        });
                     }
-                    entries.forEach(function (entry) {
-                        if (entry.isFile) {
-                            const isDownloading = activeDownloads[entry.name] !== undefined;
-                            const percId = 'dl-perc-' + getSafeId(entry.name);
-                            const progressText = isDownloading ? `<span style="color: var(--primary-color); font-size: 0.75rem;"><strong id="${percId}">% ${activeDownloads[entry.name].progress}</strong> İniyor...</span>` : '';
-
-                            const actionButtons = isDownloading
-                                ? `<span style="font-size: 0.8rem; color: var(--secondary-text);">İndiriliyor</span>`
-                                : `
-                                    <button class="action-btn" onclick="openOfflineFile('${entry.nativeURL}')" style="color: var(--success-color);">
-                                        Aç
-                                    </button>
-                                    <button class="action-btn delete-btn" onclick="deleteOfflineFile('${entry.name}')">
-                                        Sil
-                                    </button>
-                                `;
-
-                            const li = document.createElement('li');
-                            li.className = 'file-item';
-                            li.innerHTML = `
-                                <div class="file-info" style="flex: 1; overflow: hidden; padding-right: 10px; flex-direction: column; align-items: flex-start; gap: 4px;">
-                                    <span class="file-name" style="word-break: break-all; width: 100%; white-space: normal;">${entry.name}</span>
-                                    ${progressText}
-                                </div>
-                                <div style="display: flex; gap: 5px; align-items: center;">
-                                    ${actionButtons}
-                                </div>
-                            `;
-                            dlList.appendChild(li);
-                        }
-                    });
-                }, function (err) {
-                    dlList.innerHTML = '<li style="text-align:center;">Hata: ' + err.code + '</li>';
                 });
-            }, function (err) {
-                dlList.innerHTML = '<li style="text-align:center;">Hata: ' + err.code + '</li>';
+            } else {
+                doLoadDownloadedFiles(dlList);
+            }
+        }
+
+        function doLoadDownloadedFiles(dlList) {
+            dlList.innerHTML = '';
+            let saved = JSON.parse(localStorage.getItem('my_downloads') || '[]');
+            const activeKeys = Object.keys(activeDownloads);
+
+            // Aktif inenleri de listeye ekle
+            activeKeys.forEach(name => {
+                if (!saved.find(f => f.name === name)) {
+                    saved.push({ name: name, nativeURL: '', isDownloading: true });
+                }
+            });
+
+            if (saved.length === 0) {
+                dlList.innerHTML = '<li style="text-align:center; padding: 10px; color: var(--secondary-text);">İndirilen dosya yok.</li>';
+                return;
+            }
+
+            saved.forEach(function (file) {
+                const isDownloading = activeDownloads[file.name] !== undefined || file.isDownloading;
+                const percId = 'dl-perc-' + getSafeId(file.name);
+                const progressText = isDownloading ? `<span style="color: var(--primary-color); font-size: 0.75rem;"><strong id="${percId}">% ${activeDownloads[file.name] ? activeDownloads[file.name].progress : 0}</strong> İniyor...</span>` : '';
+
+                const actionButtons = isDownloading
+                    ? `<span style="font-size: 0.8rem; color: var(--secondary-text);">İndiriliyor</span>`
+                    : `
+                        <button class="action-btn" onclick="openOfflineFile('${file.nativeURL}')" style="color: var(--success-color);">
+                            Aç
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteOfflineFile('${file.name}', '${file.nativeURL}')">
+                            Sil
+                        </button>
+                    `;
+
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <div class="file-info" style="flex: 1; overflow: hidden; padding-right: 10px; flex-direction: column; align-items: flex-start; gap: 4px;">
+                        <span class="file-name" style="word-break: break-all; width: 100%; white-space: normal;">${file.name}</span>
+                        ${progressText}
+                    </div>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        ${actionButtons}
+                    </div>
+                `;
+                dlList.appendChild(li);
             });
         }
 
         function openOfflineFile(fileUrl) {
+            const ext = fileUrl.split('.').pop().toLowerCase();
+            let mimeType = '*/*';
+
+            const mimeTypes = {
+                'apk': 'application/vnd.android.package-archive',
+                'pdf': 'application/pdf',
+                'zip': 'application/zip',
+                'rar': 'application/x-rar-compressed',
+                'txt': 'text/plain',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'mp4': 'video/mp4',
+                'mkv': 'video/x-matroska',
+                'mp3': 'audio/mpeg',
+                'wav': 'audio/x-wav'
+            };
+
+            if (mimeTypes[ext]) {
+                mimeType = mimeTypes[ext];
+            }
+
             cordova.plugins.fileOpener2.open(
                 fileUrl,
-                // We let the OS determine mime type from extension
-                '*/*',
+                mimeType,
                 {
                     error: function (e) { alert('Açılırken hata oluştu: ' + e.message + '\\n(Cihazda bu dosyayı açacak uygulama olmayabilir)'); },
                     success: function () { }
@@ -1233,15 +1296,22 @@
             );
         }
 
-        function deleteOfflineFile(fileName) {
-            if (!confirm('Bu dosyayı cihazdan silmek istiyor musunuz?')) return;
-            window.resolveLocalFileSystemURL(getDownloadDir(), function (dirEntry) {
-                dirEntry.getFile(fileName, { create: false }, function (fileEntry) {
+        function deleteOfflineFile(fileName, nativeURL) {
+            if (!confirm('Bu dosyayı listeden silmek istiyor musunuz? (Cihazdan dosya yöneticisiyle silmeniz gerekebilir)')) return;
+
+            let saved = JSON.parse(localStorage.getItem('my_downloads') || '[]');
+            saved = saved.filter(f => f.name !== fileName);
+            localStorage.setItem('my_downloads', JSON.stringify(saved));
+
+            if (nativeURL) {
+                window.resolveLocalFileSystemURL(nativeURL, function (fileEntry) {
                     fileEntry.remove(function () {
-                        loadDownloadedFiles();
-                    });
-                });
-            });
+                        // deleted physical file
+                    }, function (e) { console.log('File remove error', e); });
+                }, function (e) { console.log('Resolve error', e); });
+            }
+
+            loadDownloadedFiles();
         }
 
 
@@ -1408,6 +1478,22 @@
     <script>
         document.addEventListener("deviceready", function () {
             console.log("Device Ready");
+
+            // Request Storage Permissions on startup
+            if (window.cordova && cordova.plugins.permissions) {
+                const permissions = cordova.plugins.permissions;
+                const permsList = [
+                    permissions.READ_EXTERNAL_STORAGE,
+                    permissions.WRITE_EXTERNAL_STORAGE
+                ];
+                permissions.requestPermissions(permsList, function (status) {
+                    if (!status.hasPermission) {
+                        console.warn("Depolama izni verilmedi.");
+                    }
+                }, function () {
+                    console.warn("İzin istenirken hata oluştu.");
+                });
+            }
 
             // 1. Start Node Server with status feedback
             serverStatusText.textContent = 'Sunucu Başlatılıyor...';
