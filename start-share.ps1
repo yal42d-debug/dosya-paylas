@@ -7,7 +7,9 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     Exit
 }
 
-$tmpDir = New-Item -ItemType Directory -Path "$env:TEMP\share-cli-$(Get-Random)"
+$tempFolder = [System.IO.Path]::GetTempPath()
+$tmpDirName = Join-Path $tempFolder "share-cli-$(Get-Random)"
+$tmpDir = New-Item -ItemType Directory -Path $tmpDirName
 Set-Location $tmpDir.FullName
 
 Write-Host "📦 Bagimliliklar hazirlaniyor..." -ForegroundColor Cyan
@@ -35,7 +37,11 @@ if (-not $serverRunning) {
     }
 
     # Sunucuyu arka planda calistir
-    Start-Process -FilePath "node" -ArgumentList "server.js" -WindowStyle Hidden
+    try {
+        Start-Process -FilePath "node" -ArgumentList "server.js" -WindowStyle Hidden -ErrorAction Stop
+    } catch {
+        Start-Process -FilePath "node" -ArgumentList "server.js" -RedirectStandardOutput "server.log" -RedirectStandardError "server.err" -NoNewWindow
+    }
     
     Write-Host "⏳ Sunucu bekleniyor" -NoNewline -ForegroundColor Cyan
     for ($i=1; $i -le 15; $i++) {
