@@ -479,6 +479,33 @@ async function printBanner() {
         connectionMode = 'disconnected';
     }
 
+    // Auto-start tunnel if connected to local server but no tunnel exists
+    if (connectionMode === 'local-server' && serverInfo && !serverInfo.tunnelUrl) {
+        process.stdout.write(`${colors.cyan}⏳ Dış bağlantı (Tünel) kuruluyor...${colors.reset}`);
+        try {
+            await request('POST', '/api/tunnel/start');
+        } catch (e) { }
+        // Poll for tunnel URL for up to 15 seconds
+        for (let t = 0; t < 15; t++) {
+            await new Promise(r => setTimeout(r, 1000));
+            process.stdout.write('.');
+            try {
+                const freshInfo = await request('GET', '/api/info');
+                if (freshInfo && freshInfo.tunnelUrl) {
+                    serverInfo = freshInfo;
+                    process.stdout.write(`\n${colors.green}✅ Tünel hazır: ${freshInfo.tunnelUrl}${colors.reset}\n`);
+                    break;
+                }
+                if (freshInfo && freshInfo.tunnelError) {
+                    process.stdout.write(`\n${colors.red}❌ Tünel hatası: ${freshInfo.tunnelError}${colors.reset}\n`);
+                    serverInfo = freshInfo;
+                    break;
+                }
+            } catch (e) { }
+        }
+        console.log('');
+    }
+
     // Mode description
     let modeDesc;
     switch (connectionMode) {
