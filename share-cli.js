@@ -482,11 +482,11 @@ async function printBanner() {
     // Auto-start tunnel if connected to local server but no tunnel exists
     if (connectionMode === 'local-server' && serverInfo && !serverInfo.tunnelUrl) {
         process.stdout.write(`${colors.cyan}⏳ Dış bağlantı (Tünel) kuruluyor...${colors.reset}`);
-        try {
-            await request('POST', '/api/tunnel/start');
-        } catch (e) { }
-        // Poll for tunnel URL for up to 15 seconds
-        for (let t = 0; t < 15; t++) {
+        // Fire-and-forget: don't await, let it run in background
+        request('POST', '/api/tunnel/start').catch(() => { });
+        // Poll for tunnel URL for up to 20 seconds
+        let tunnelFound = false;
+        for (let t = 0; t < 20; t++) {
             await new Promise(r => setTimeout(r, 1000));
             process.stdout.write('.');
             try {
@@ -494,14 +494,19 @@ async function printBanner() {
                 if (freshInfo && freshInfo.tunnelUrl) {
                     serverInfo = freshInfo;
                     process.stdout.write(`\n${colors.green}✅ Tünel hazır: ${freshInfo.tunnelUrl}${colors.reset}\n`);
+                    tunnelFound = true;
                     break;
                 }
                 if (freshInfo && freshInfo.tunnelError) {
                     process.stdout.write(`\n${colors.red}❌ Tünel hatası: ${freshInfo.tunnelError}${colors.reset}\n`);
                     serverInfo = freshInfo;
+                    tunnelFound = true;
                     break;
                 }
             } catch (e) { }
+        }
+        if (!tunnelFound) {
+            process.stdout.write(`\n${colors.red}❌ Tünel 20 saniye içinde kurulamadı. İnternet bağlantınızı veya güvenlik duvarını kontrol edin.${colors.reset}\n`);
         }
         console.log('');
     }

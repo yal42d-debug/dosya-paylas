@@ -195,14 +195,20 @@ app.get('/api/tunnel/status', (req, res) => {
 app.post('/api/tunnel/start', async (req, res) => {
   if (currentTunnelUrl) return res.json({ message: 'Already running', url: currentTunnelUrl });
   try {
-    const tunnel = await localtunnel({ port: PORT });
+    const tunnel = await Promise.race([
+      localtunnel({ port: PORT }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Tünel bağlantısı zaman aşımına uğradı (10s)')), 10000))
+    ]);
     tunnel.on('error', (err) => {
       console.error('❌ Tünel hatası:', err.message);
       currentTunnelUrl = null;
+      tunnelError = err.message;
     });
     currentTunnelUrl = tunnel.url;
+    tunnelError = null;
     res.json({ message: 'Started', url: currentTunnelUrl });
   } catch (e) {
+    tunnelError = e.message;
     res.status(500).json({ error: e.message });
   }
 });
