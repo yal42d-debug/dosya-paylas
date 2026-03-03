@@ -221,7 +221,13 @@ async function startServer() {
       for (let i = 0; i < retries; i++) {
         try {
           tunnelError = null;
-          const tunnel = await localtunnel({ port: PORT });
+          // Set a strict 5-second timeout for localtunnel connection. 
+          // Localtunnel servers can sometimes hang indefinitely.
+          const tunnel = await Promise.race([
+            localtunnel({ port: PORT }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Localtunnel bağlantısında zaman aşımı (Timeout) yaşandı. Tünel sunucusu çökmüş veya engellenmiş olabilir.')), 5000))
+          ]);
+
           tunnel.on('error', (err) => {
             console.error('❌ Tünel koptu:', err.message);
             currentTunnelUrl = null;
@@ -233,7 +239,7 @@ async function startServer() {
             return true;
           }
         } catch (e) {
-          console.warn(`⚠️ Tünel denemesi ${i + 1} başarısız...`);
+          console.warn(`⚠️ Tünel denemesi ${i + 1} başarısız: ${e.message}`);
           tunnelError = e.message;
           await new Promise(r => setTimeout(r, 2000));
         }
