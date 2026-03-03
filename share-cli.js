@@ -28,7 +28,24 @@ let serverProcess = null; // child process if we started the server
 let connectionMode = 'disconnected'; // 'local-server', 'remote-local', 'remote-tunnel', 'disconnected'
 let serverInfo = null; // cached /api/info response
 
-// --- UI HELPERS ---
+// --- WINDOWS EMOJI FIX ---
+const isWindows = process.platform === 'win32';
+const emojiMap = {
+    '🚀': '[*]', '📂': '[D]', '🏠': '[H]', '🌍': '[W]', '🔗': '[>]',
+    '📲': '[QR]', '💬': '[C]', '🚪': '[X]', '🟢': '[+]', '🔴': '[-]',
+    '✅': '[OK]', '❌': '[!!]', '⚠️': '[!]', '⏳': '[..]', '📦': '[P]',
+    '📥': '[v]', '🔑': '[K]', '🌐': '[W]', '📡': '[~]', '🛡️': '[S]',
+    '🔧': '[~]', '📋': '[=]', '🗑️': '[x]', '💡': '[i]'
+};
+function e(str) {
+    if (!isWindows) return str;
+    for (const [emoji, ascii] of Object.entries(emojiMap)) {
+        str = str.split(emoji).join(ascii);
+    }
+    return str;
+}
+
+
 const colors = {
     reset: "\x1b[0m",
     bright: "\x1b[1m",
@@ -481,7 +498,7 @@ async function printBanner() {
 
     // Auto-start tunnel if connected to local server but no tunnel exists
     if (connectionMode === 'local-server' && serverInfo && !serverInfo.tunnelUrl) {
-        process.stdout.write(`${colors.cyan}⏳ Dış bağlantı (Tünel) kuruluyor...${colors.reset}`);
+        process.stdout.write(e(`${colors.cyan}⏳ Dış bağlantı (Tünel) kuruluyor...${colors.reset}`));
         // Fire-and-forget: don't await, let it run in background
         request('POST', '/api/tunnel/start').catch(() => { });
         // Poll for tunnel URL for up to 20 seconds
@@ -493,12 +510,12 @@ async function printBanner() {
                 const freshInfo = await request('GET', '/api/info');
                 if (freshInfo && freshInfo.tunnelUrl) {
                     serverInfo = freshInfo;
-                    process.stdout.write(`\n${colors.green}✅ Tünel hazır: ${freshInfo.tunnelUrl}${colors.reset}\n`);
+                    process.stdout.write(e(`\n${colors.green}✅ Tünel hazır: ${freshInfo.tunnelUrl}${colors.reset}\n`));
                     tunnelFound = true;
                     break;
                 }
                 if (freshInfo && freshInfo.tunnelError) {
-                    process.stdout.write(`\n${colors.red}❌ Tünel hatası: ${freshInfo.tunnelError}${colors.reset}\n`);
+                    process.stdout.write(e(`\n${colors.red}❌ Tünel hatası: ${freshInfo.tunnelError}${colors.reset}\n`));
                     serverInfo = freshInfo;
                     tunnelFound = true;
                     break;
@@ -506,7 +523,7 @@ async function printBanner() {
             } catch (e) { }
         }
         if (!tunnelFound) {
-            process.stdout.write(`\n${colors.red}❌ Tünel 20 saniye içinde kurulamadı. İnternet bağlantınızı veya güvenlik duvarını kontrol edin.${colors.reset}\n`);
+            process.stdout.write(e(`\n${colors.red}❌ Tünel 20 saniye içinde kurulamadı. İnternet bağlantınızı veya güvenlik duvarını kontrol edin.${colors.reset}\n`));
         }
         console.log('');
     }
@@ -514,31 +531,31 @@ async function printBanner() {
     // Mode description
     let modeDesc;
     switch (connectionMode) {
-        case 'local-server': modeDesc = '📡 Kendi Sunucum (localhost)'; break;
-        case 'remote-local': modeDesc = '🏠 Yerel Ağdaki Sunucu'; break;
-        case 'remote-tunnel': modeDesc = '🌍 Uzak Sunucu (Tünel)'; break;
-        default: modeDesc = '❌ Bağlı Değil'; break;
+        case 'local-server': modeDesc = e('📡 Kendi Sunucum (localhost)'); break;
+        case 'remote-local': modeDesc = e('🏠 Yerel Ağdaki Sunucu'); break;
+        case 'remote-tunnel': modeDesc = e('🌍 Uzak Sunucu (Tünel)'); break;
+        default: modeDesc = e('❌ Bağlı Değil'); break;
     }
 
     console.log(`${colors.cyan}${colors.bright}╔══════════════════════════════════════════╗`);
-    console.log(`║   🚀 SHARE-CLI TERMINAL ARAYÜZÜ v3.0    ║`);
+    console.log(e(`║   🚀 SHARE-CLI TERMINAL ARAYÜZÜ v3.0    ║`));
     console.log(`╚══════════════════════════════════════════╝${colors.reset}`);
-    console.log(`${statusColor}${statusIcon} Durum: ${statusText}${colors.reset}   ${colors.dim}${modeDesc}${colors.reset}`);
-    console.log(`${colors.yellow}🔗 Sunucu:${colors.reset}  ${config.apiBase}`);
+    console.log(e(`${statusColor}${statusIcon} Durum: ${statusText}${colors.reset}   ${colors.dim}${modeDesc}${colors.reset}`));
+    console.log(e(`${colors.yellow}🔗 Sunucu:${colors.reset}  ${config.apiBase}`));
 
     if (serverInfo) {
         const localUrl = serverInfo.localUrl || serverInfo.url || '';
         const tunnelUrl = serverInfo.tunnelUrl || ((serverInfo.running && serverInfo.url) ? serverInfo.url : null);
         if (localUrl && connectionMode === 'local-server') {
-            console.log(`${colors.yellow}🏠 Yerel:${colors.reset}   ${localUrl}`);
+            console.log(e(`${colors.yellow}🏠 Yerel:${colors.reset}   ${localUrl}`));
         }
         if (tunnelUrl) {
-            console.log(`${colors.yellow}🌍 Tünel:${colors.reset}   ${tunnelUrl}`);
+            console.log(e(`${colors.yellow}🌍 Tünel:${colors.reset}   ${tunnelUrl}`));
         } else if (serverInfo.tunnelError) {
-            console.log(`${colors.red}🌍 Tünel Hatası:${colors.reset} ${serverInfo.tunnelError}`);
+            console.log(e(`${colors.red}🌍 Tünel Hatası:${colors.reset} ${serverInfo.tunnelError}`));
         }
         if (serverInfo.shareDir) {
-            console.log(`${colors.yellow}📂 Klasör:${colors.reset}  ${serverInfo.shareDir}`);
+            console.log(e(`${colors.yellow}📂 Klasör:${colors.reset}  ${serverInfo.shareDir}`));
         }
     }
     console.log(`${colors.cyan}${"-".repeat(44)}${colors.reset}\n`);
@@ -563,21 +580,21 @@ async function mainMenu() {
             console.log(`${colors.dim}2. Dosya İndir (bağlantı gerekli)${colors.reset}`);
             console.log(`${colors.dim}3. Dosya Yükle (bağlantı gerekli)${colors.reset}`);
         }
-        console.log(`${colors.blue}4.${colors.reset} 🔗 Sunucuya Bağlan / Kendi Sunucunu Başlat`);
+        console.log(e(`${colors.blue}4.${colors.reset} 🔗 Sunucuya Bağlan / Kendi Sunucunu Başlat`));
         if (isLocalServer) {
-            console.log(`${colors.blue}5.${colors.reset} 🌐 Tünel Yönetimi (Dış Erişim Aç/Kapa)`);
-            console.log(`${colors.blue}6.${colors.reset} 📂 Paylaşılan Klasörü Değiştir`);
+            console.log(e(`${colors.blue}5.${colors.reset} 🌐 Tünel Yönetimi (Dış Erişim Aç/Kapa)`));
+            console.log(e(`${colors.blue}6.${colors.reset} 📂 Paylaşılan Klasörü Değiştir`));
         } else {
-            console.log(`${colors.dim}5. 🌐 Tünel Yönetimi (kendi sunucunuzda çalışır)${colors.reset}`);
-            console.log(`${colors.dim}6. 📂 Paylaşılan Klasörü Değiştir (kendi sunucunuzda çalışır)${colors.reset}`);
+            console.log(e(`${colors.dim}5. 🌐 Tünel Yönetimi (kendi sunucunuzda çalışır)${colors.reset}`));
+            console.log(e(`${colors.dim}6. 📂 Paylaşılan Klasörü Değiştir (kendi sunucunuzda çalışır)${colors.reset}`));
         }
-        console.log(`${colors.yellow}7.${colors.reset} 📲 Sunucu Bilgileri & QR Kodları`);
+        console.log(e(`${colors.yellow}7.${colors.reset} 📲 Sunucu Bilgileri & QR Kodları`));
         if (isConnected) {
-            console.log(`${colors.magenta}8.${colors.reset} 💬 Chat Odasına Katıl`);
+            console.log(e(`${colors.magenta}8.${colors.reset} 💬 Chat Odasına Katıl`));
         } else {
-            console.log(`${colors.dim}8. 💬 Chat Odasına Katıl (bağlantı gerekli)${colors.reset}`);
+            console.log(e(`${colors.dim}8. 💬 Chat Odasına Katıl (bağlantı gerekli)${colors.reset}`));
         }
-        console.log(`${colors.red}9.${colors.reset} 🚪 Çıkış`);
+        console.log(e(`${colors.red}9.${colors.reset} 🚪 Çıkış`));
 
         const choice = await question(`\n${colors.magenta}Seçiminiz: ${colors.reset}`);
 
