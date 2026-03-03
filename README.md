@@ -13,7 +13,7 @@ curl -sL https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/start-
 
 **Windows (CMD veya PowerShell) için:**
 ```powershell
-powershell -Command "irm ""https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/start-share.ps1?v=$(Get-Random)"" | iex"
+powershell -Command "$r=Get-Random; irm https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/start-share.ps1?v=$r | iex"
 ```
 
 *(Not: Bu komutlar sunucuyu kontrol eder, kapalıysa arka planda otomatik başlatır.)*
