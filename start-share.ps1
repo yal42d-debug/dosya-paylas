@@ -1,5 +1,7 @@
 [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
 $OutputEncoding = [System.Text.Encoding]::UTF8
+try { chcp 65001 | Out-Null } catch { }
+$env:NODE_NO_WARNINGS = "1"
 
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "🚀 SHARE-CLI HIZLI BASLATICI v3.0 (Windows)" -ForegroundColor Green
@@ -16,8 +18,8 @@ $tmpDir = New-Item -ItemType Directory -Path $tmpDirName
 Set-Location $tmpDir.FullName
 
 Write-Host "📦 Bagimliliklar hazirlaniyor..." -ForegroundColor Cyan
-npm init -y | Out-Null
-npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel | Out-Null
+npm init -y 2>&1 | Out-Null
+npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel --silent --no-fund --no-audit 2>&1 | Out-Null
 
 $serverRunning = $false
 try {
