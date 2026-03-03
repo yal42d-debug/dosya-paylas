@@ -1,3 +1,6 @@
+[console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "🚀 SHARE-CLI HIZLI BASLATICI v3.0 (Windows)" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Cyan
