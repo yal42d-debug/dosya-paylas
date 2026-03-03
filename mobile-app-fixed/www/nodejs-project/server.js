@@ -232,16 +232,6 @@ app.post('/api/firebase/upload-file', async (req, res) => {
   }
 });
 
-// Download Source Code (must be before /download/* wildcard)
-app.get('/download-app', (req, res) => {
-  const archive = archiver('zip', { zlib: { level: 9 } });
-  res.attachment('dosya-share-app.zip');
-  archive.pipe(res);
-  archive.file(path.join(__dirname, 'package.json'), { name: 'package.json' });
-  archive.file(path.join(__dirname, 'server.js'), { name: 'server.js' });
-  archive.directory(path.join(__dirname, 'public'), 'public');
-  archive.finalize();
-});
 
 // Download file - use wildcard to handle special chars in filenames
 app.get('/download/*', (req, res) => {
@@ -346,9 +336,11 @@ app.post('/api/tunnel/start', async (req, res) => {
 
   try {
     console.log('Starting LocalTunnel...');
+    // Bypass TLS validation in case Android node lacks CA certificates
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     if (!localtunnel) localtunnel = require('localtunnel');
 
-    tunnelInstance = await localtunnel({ port: PORT });
+    tunnelInstance = await localtunnel({ port: PORT, local_host: '127.0.0.1' });
     currentTunnelUrl = tunnelInstance.url;
     console.log('LocalTunnel started at:', currentTunnelUrl);
 
@@ -363,6 +355,22 @@ app.post('/api/tunnel/start', async (req, res) => {
   } catch (err) {
     console.error('Tunnel start failed:', err);
     res.status(500).json({ error: 'Failed to start tunnel: ' + err.message });
+  }
+});
+
+app.get('/api/tunnel/password', async (req, res) => {
+  try {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    const https = require('https');
+    https.get('https://loca.lt/mytunnelpassword', (resp) => {
+      let data = '';
+      resp.on('data', (chunk) => { data += chunk; });
+      resp.on('end', () => { res.json({ password: data.trim() }); });
+    }).on("error", (err) => {
+      res.status(500).json({ error: err.message });
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

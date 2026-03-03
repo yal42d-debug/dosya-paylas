@@ -5,9 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dosya Paylaşım Merkezi</title>
-    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         :root {
             --bg-color: #121212;
@@ -321,10 +319,64 @@
         .hidden {
             display: none;
         }
+
+        /* Toast Container */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .dl-toast {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .dl-toast-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .dl-toast-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80%;
+        }
+
+        .dl-toast-progress-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .dl-toast-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.2s;
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 
     <div class="container">
         <header>
@@ -449,7 +501,6 @@
                 <button class="tab-btn active" onclick="switchTab('local')">Lokal</button>
                 <button class="tab-btn" onclick="switchTab('wifi')">Wi-Fi</button>
                 <button class="tab-btn" onclick="switchTab('remote')">Uzaktan</button>
-                <button class="tab-btn" onclick="switchTab('firebase')">Firebase</button>
             </div>
 
             <!-- Local Tab -->
@@ -485,6 +536,9 @@
                     <p id="remote-url-text"
                         style="word-break: break-all; color: var(--primary-color); font-size: 0.8rem; margin-top: 5px;">
                     </p>
+                    <p id="remote-password-text"
+                        style="word-break: break-all; color: var(--success-color); font-size: 0.9rem; font-weight: bold; margin-top: 8px; display: none;">
+                    </p>
                 </div>
                 <div id="remote-placeholder" style="padding: 10px; color: var(--secondary-text); font-size: 0.8rem;">
                     <p>PC'de şu komutu çalıştırın:</p>
@@ -495,18 +549,7 @@
                 </div>
             </div>
 
-            <!-- Firebase Tab -->
-            <div id="tab-firebase" class="tab-content">
-                <div class="wifi-form">
-                    <p style="font-size: 0.8rem; color: var(--secondary-text);">Firebase Ayarları (JSON)</p>
-                    <textarea id="firebase-config-input" class="wifi-input" style="height: 100px; font-size: 0.7rem;"
-                        placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "...", "storageBucket": "..."}'></textarea>
-                    <button class="generate-btn" onclick="saveFirebaseConfig()">Ayarları Kaydet</button>
-                </div>
-                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
-                <p style="font-size: 0.8rem; color: var(--success-color);" id="firebase-status">Ayarlar bekleniyor...
-                </p>
-            </div>
+
 
             <button class="modal-close" style="margin-top: 20px;" onclick="closeQrModal()">Kapat</button>
         </div>
@@ -697,6 +740,24 @@
                 document.getElementById('remote-url-text').textContent = tunnelUrl;
                 document.getElementById('remote-url-input').value = tunnelUrl;
                 generateQr(tunnelUrl, 'qr-remote-img');
+
+                // If using loca.lt, fetch the password
+                const pwdEl = document.getElementById('remote-password-text');
+                if (tunnelUrl.includes('.loca.lt')) {
+                    fetch('/api/tunnel/password')
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.password) {
+                                pwdEl.textContent = 'Tünel Şifresi: ' + data.password;
+                                pwdEl.style.display = 'block';
+                            } else {
+                                pwdEl.style.display = 'none';
+                            }
+                        })
+                        .catch(() => pwdEl.style.display = 'none');
+                } else {
+                    pwdEl.style.display = 'none';
+                }
             } else {
                 container.style.display = 'none';
                 placeholder.style.display = 'block';
@@ -802,9 +863,10 @@
             fetch(endpoint, { method: 'POST' })
                 .then(res => res.json())
                 .then(data => {
+                    if (data.error) alert('Tünel Hatası: ' + data.error);
                     setTimeout(checkTunnelStatus, 1000);
                 })
-                .catch(err => alert('İşlem başarısız'))
+                .catch(err => alert('İşlem başarısız: ' + err.message))
                 .finally(() => {
                     tunnelBtn.disabled = false;
                     tunnelBtn.style.opacity = "1";
@@ -845,10 +907,6 @@
                                 </button>
                                 <button class="action-btn delete-btn" onclick="deleteFile('${encodeURIComponent(file.name)}')">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                </button>
-                                <button class="action-btn" title="Firebase'e Yükle" onclick="uploadToFirebase('${encodeURIComponent(file.name)}')">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                    <span style="font-size:0.6rem; vertical-align: super;">Cloud</span>
                                 </button>
                             </div>
                         `;
@@ -974,77 +1032,54 @@
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 });
         }
-        // Firebase Logic
-        function saveFirebaseConfig() {
-            const configStr = document.getElementById('firebase-config-input').value.trim();
-            if (!configStr) return alert('Konfigürasyon boş olamaz');
-            try {
-                const config = JSON.parse(configStr);
-                fetch('/api/firebase/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
-                })
-                    .then(res => res.json())
-                    .then(d => {
-                        if (d.success) {
-                            alert('Ayarlar kaydedildi!');
-                            loadFirebaseConfig();
-                        } else {
-                            alert('Hata: ' + d.error);
-                        }
-                    });
-            } catch (e) {
-                alert('Geçersiz JSON formatı!');
-            }
-        }
 
-        function loadFirebaseConfig() {
-            fetch('/api/firebase/config')
-                .then(res => res.json())
-                .then(config => {
-                    if (config && config.apiKey) {
-                        document.getElementById('firebase-config-input').value = JSON.stringify(config, null, 2);
-                        document.getElementById('firebase-status').textContent = "Ayarlar Yüklendi ✅";
-                    } else {
-                        document.getElementById('firebase-status').textContent = "Ayarlar bekleniyor...";
-                    }
-                });
-        }
-
-        // Initial load
-        setTimeout(loadFirebaseConfig, 2000);
-
-        function uploadToFirebase(filename) {
-            if (!confirm(filename + ' dosyasını Firebase Storage\'a yüklemek istiyor musunuz?')) return;
-
-            const btn = event.currentTarget; // The button clicked
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '...';
-            btn.disabled = true;
-
-            fetch('/api/firebase/upload-file', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename: decodeURIComponent(filename) })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        prompt("Dosya Yüklendi! Linki kopyalayın:", data.url);
-                    } else {
-                        alert("Hata: " + data.error);
-                    }
-                })
-                .catch(err => alert("Bağlantı hatası"))
-                .finally(() => {
-                    btn.innerHTML = originalHtml;
-                    btn.disabled = false;
-                });
-        }
 
         // Download and App State Logic
         let BASE_URL = "http://localhost:3000";
+        const activeDownloads = {};
+
+        function getSafeId(filename) {
+            return 'toast-' + encodeURIComponent(filename).replace(/[^a-zA-Z0-9]/g, '');
+        }
+
+        function showToast(filename) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const safeId = getSafeId(filename);
+
+            if (document.getElementById(safeId)) return safeId;
+
+            const div = document.createElement('div');
+            div.className = 'dl-toast';
+            div.id = safeId;
+            div.innerHTML = `
+                <div class="dl-toast-header">
+                    <span class="dl-toast-name" title="${filename}">${filename}</span>
+                    <span id="${safeId}-perc">0%</span>
+                </div>
+                <div class="dl-toast-progress-bg">
+                    <div id="${safeId}-bar" class="dl-toast-progress-bar"></div>
+                </div>
+            `;
+            container.appendChild(div);
+            return safeId;
+        }
+
+        function updateToast(filename, perc) {
+            const safeId = getSafeId(filename);
+            const percEl = document.getElementById(safeId + '-perc');
+            const barEl = document.getElementById(safeId + '-bar');
+            if (percEl) percEl.textContent = perc + '%';
+            if (barEl) barEl.style.width = perc + '%';
+        }
+
+        function hideToast(filename) {
+            const safeId = getSafeId(filename);
+            const el = document.getElementById(safeId);
+            if (el) {
+                setTimeout(() => el.remove(), 1000);
+            }
+        }
 
         function resetToLocal() {
             BASE_URL = "http://localhost:3000";
@@ -1059,11 +1094,11 @@
         }
 
         function downloadFile(filename) {
+            const decodedName = decodeURIComponent(filename);
             const url = BASE_URL + '/download/' + filename;
             if (window.cordova && window.FileTransfer) {
-                const targetPath = getDownloadDir() + decodeURIComponent(filename);
+                const targetPath = getDownloadDir() + decodedName;
 
-                // Show notification briefly via visual or toast if we had one, but we'll use local notification on end
                 const ft = new FileTransfer();
                 const options = {
                     headers: {
@@ -1071,23 +1106,47 @@
                     }
                 };
 
+                showToast(decodedName);
+                activeDownloads[decodedName] = { progress: 0 };
+
+                ft.onprogress = function (pe) {
+                    if (pe.lengthComputable) {
+                        const perc = Math.floor((pe.loaded / pe.total) * 100);
+                        activeDownloads[decodedName].progress = perc;
+                        updateToast(decodedName, perc);
+
+                        const dlItemPerc = document.getElementById('dl-perc-' + getSafeId(decodedName));
+                        if (dlItemPerc) dlItemPerc.textContent = '% ' + perc;
+                    }
+                };
+
                 ft.download(
                     url,
                     targetPath,
                     function (entry) {
+                        delete activeDownloads[decodedName];
+                        hideToast(decodedName);
+                        if (document.getElementById('downloads-modal').classList.contains('open')) {
+                            loadDownloadedFiles();
+                        }
                         try {
                             if (cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
                                 cordova.plugins.notification.local.schedule({
                                     title: 'İndirme Tamamlandı',
-                                    text: decodeURIComponent(filename) + ' başarıyla indirildi.',
+                                    text: decodedName + ' başarıyla indirildi.',
                                     foreground: true
                                 });
                             } else {
-                                alert("İndirme Tamamlandı:\n" + decodeURIComponent(filename));
+                                alert("İndirme Tamamlandı:\n" + decodedName);
                             }
                         } catch (e) { }
                     },
                     function (error) {
+                        delete activeDownloads[decodedName];
+                        hideToast(decodedName);
+                        if (document.getElementById('downloads-modal').classList.contains('open')) {
+                            loadDownloadedFiles();
+                        }
                         alert("İndirme hatası: " + error.code);
                     },
                     true, // trustAllHosts
@@ -1125,19 +1184,30 @@
                     }
                     entries.forEach(function (entry) {
                         if (entry.isFile) {
-                            const li = document.createElement('li');
-                            li.className = 'file-item';
-                            li.innerHTML = `
-                                <div class="file-info" style="flex: 1; overflow: hidden; padding-right: 10px;">
-                                    <span class="file-name" style="word-break: break-all;">${entry.name}</span>
-                                </div>
-                                <div style="display: flex; gap: 5px;">
+                            const isDownloading = activeDownloads[entry.name] !== undefined;
+                            const percId = 'dl-perc-' + getSafeId(entry.name);
+                            const progressText = isDownloading ? `<span style="color: var(--primary-color); font-size: 0.75rem;"><strong id="${percId}">% ${activeDownloads[entry.name].progress}</strong> İniyor...</span>` : '';
+
+                            const actionButtons = isDownloading
+                                ? `<span style="font-size: 0.8rem; color: var(--secondary-text);">İndiriliyor</span>`
+                                : `
                                     <button class="action-btn" onclick="openOfflineFile('${entry.nativeURL}')" style="color: var(--success-color);">
                                         Aç
                                     </button>
                                     <button class="action-btn delete-btn" onclick="deleteOfflineFile('${entry.name}')">
                                         Sil
                                     </button>
+                                `;
+
+                            const li = document.createElement('li');
+                            li.className = 'file-item';
+                            li.innerHTML = `
+                                <div class="file-info" style="flex: 1; overflow: hidden; padding-right: 10px; flex-direction: column; align-items: flex-start; gap: 4px;">
+                                    <span class="file-name" style="word-break: break-all; width: 100%; white-space: normal;">${entry.name}</span>
+                                    ${progressText}
+                                </div>
+                                <div style="display: flex; gap: 5px; align-items: center;">
+                                    ${actionButtons}
                                 </div>
                             `;
                             dlList.appendChild(li);
@@ -1393,6 +1463,9 @@
                                 options.data = opts.body;
                                 options.serializer = 'utf8';
                             }
+                        } else if ((method === 'post' || method === 'put') && !opts.body) {
+                            options.data = {};
+                            options.serializer = 'json';
                         }
 
                         cordova.plugin.http.sendRequest(url, options,
