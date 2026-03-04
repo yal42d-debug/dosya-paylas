@@ -428,11 +428,16 @@ async function startLocalServer() {
         connectionMode = 'local-server';
         serverInfo = check.info;
         saveConfig(config);
+        // Mevcut sunucunun klasörünü DoSy All olarak ayarla
+        try {
+            await request('POST', '/api/set-dir', { dir: DOSY_ALL_DIR });
+            console.log(`${colors.green}📁 Paylaşım klasörü: ${DOSY_ALL_DIR}${colors.reset}`);
+        } catch (e) { }
         return true;
     }
 
     console.log(`${colors.cyan}🚀 Sunucu başlatılıyor...${colors.reset}`);
-    serverProcess = spawn('node', [serverPath], {
+    serverProcess = spawn('node', [serverPath, '--dir', DOSY_ALL_DIR], {
         cwd: __dirname,
         stdio: ['ignore', 'pipe', 'pipe'],
         detached: false
@@ -458,6 +463,7 @@ async function startLocalServer() {
         const result = await testConnection('http://localhost:3000', 2000);
         if (result.success) {
             process.stdout.write(`\r${colors.green}✅ Sunucu başarıyla başlatıldı!            ${colors.reset}\n`);
+            console.log(`${colors.green}📁 Paylaşım klasörü: ${DOSY_ALL_DIR}${colors.reset}`);
             config.apiBase = 'http://localhost:3000';
             connectionMode = 'local-server';
             serverInfo = result.info;
