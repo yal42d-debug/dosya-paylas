@@ -69,7 +69,7 @@ if [ "$SERVER_RUNNING" = false ]; then
     fi
     
     # Sunucuyu arka planda başlat
-    node server.js > server.log 2>&1 &
+    node server.js --dir "$DOSY_ALL_DIR" > server.log 2>&1 &
     SERVER_PID=$!
     
     # Sunucunun hazır olmasını bekle

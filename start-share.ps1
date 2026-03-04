@@ -33,7 +33,8 @@ $dosyAllDir = Join-Path $desktopPath "DoSy All"
 if (-not (Test-Path $dosyAllDir)) {
     New-Item -ItemType Directory -Path $dosyAllDir -Force | Out-Null
     Write-Host "📁 DoSy All klasörü oluşturuldu: $dosyAllDir" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "📁 DoSy All klasörü hazır: $dosyAllDir" -ForegroundColor Green
 }
 Write-Host "   Paylaşmak istediğiniz dosyaları bu klasöre atın!" -ForegroundColor Cyan
@@ -59,7 +60,8 @@ try {
     $res = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
     $serverRunning = $true
     Write-Host "✅ Mevcut sunucu tespit edildi (localhost:3000)" -ForegroundColor Green
-} catch {
+}
+catch {
     $serverRunning = $false
 }
 
@@ -76,13 +78,14 @@ if (-not $serverRunning) {
 
     # Sunucuyu arka planda calistir
     try {
-        Start-Process -FilePath "node" -ArgumentList "server.js" -WindowStyle Hidden -ErrorAction Stop
-    } catch {
-        Start-Process -FilePath "node" -ArgumentList "server.js" -RedirectStandardOutput "server.log" -RedirectStandardError "server.err" -NoNewWindow
+        Start-Process -FilePath "node" -ArgumentList "server.js --dir `"$dosyAllDir`"" -WindowStyle Hidden -ErrorAction Stop
+    }
+    catch {
+        Start-Process -FilePath "node" -ArgumentList "server.js --dir `"$dosyAllDir`"" -RedirectStandardOutput "server.log" -RedirectStandardError "server.err" -NoNewWindow
     }
     
     Write-Host "⏳ Sunucu bekleniyor" -NoNewline -ForegroundColor Cyan
-    for ($i=1; $i -le 15; $i++) {
+    for ($i = 1; $i -le 15; $i++) {
         Write-Host "." -NoNewline
         Start-Sleep -Seconds 1
         try {
@@ -91,7 +94,7 @@ if (-not $serverRunning) {
             $serverRunning = $true
             
             Write-Host "⏳ Dis baglanti (Tunel) adresi aliniyor" -NoNewline -ForegroundColor Cyan
-            for ($j=1; $j -le 10; $j++) {
+            for ($j = 1; $j -le 10; $j++) {
                 try {
                     $json = $check.Content | ConvertFrom-Json
                     if ($null -ne $json.tunnelUrl -and $json.tunnelUrl -ne "") {
@@ -103,14 +106,16 @@ if (-not $serverRunning) {
                         break
                     }
                     $check = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
-                } catch { }
+                }
+                catch { }
                 Write-Host "." -NoNewline
                 Start-Sleep -Seconds 1
             }
             Write-Host ""
             
             break
-        } catch {
+        }
+        catch {
             # Bekliyor
         }
     }
@@ -128,7 +133,8 @@ if (Test-Path "share-cli.js") {
     Write-Host "✅ Baslatiliyor..." -ForegroundColor Green
     Start-Sleep -Seconds 1
     node share-cli.js
-} else {
+}
+else {
     Write-Host "❌ CLI araci indirilemedi." -ForegroundColor Red
 }
 

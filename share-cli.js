@@ -646,6 +646,14 @@ async function printBanner() {
 
 // --- MAIN LOOP ---
 async function mainMenu() {
+    // İlk başlatmada: sunucuya bağlıysa DoSy All'ı paylaşım klasörü yap
+    try {
+        const initCheck = await testConnection(config.apiBase, 3000);
+        if (initCheck.success) {
+            await request('POST', '/api/set-dir', { dir: DOSY_ALL_DIR });
+        }
+    } catch (e) { }
+
     while (true) {
         await printBanner();
 
