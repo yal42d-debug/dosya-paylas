@@ -7,6 +7,39 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "🚀 SHARE-CLI HIZLI BASLATICI v3.0 (Windows)" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Cyan
 
+# DoSy All klasörünü masaüstünde oluştur
+$desktopPath = [Environment]::GetFolderPath("Desktop")
+if ([string]::IsNullOrEmpty($desktopPath)) {
+    # Fallback: OneDrive veya doğrudan Desktop
+    $homeDir = $env:USERPROFILE
+    $possiblePaths = @(
+        (Join-Path $homeDir "OneDrive\Desktop"),
+        (Join-Path $homeDir "OneDrive\Masaüstü"),
+        (Join-Path $homeDir "Desktop"),
+        (Join-Path $homeDir "Masaüstü")
+    )
+    foreach ($p in $possiblePaths) {
+        if (Test-Path $p) {
+            $desktopPath = $p
+            break
+        }
+    }
+    if ([string]::IsNullOrEmpty($desktopPath)) {
+        $desktopPath = Join-Path $homeDir "Desktop"
+    }
+}
+
+$dosyAllDir = Join-Path $desktopPath "DoSy All"
+if (-not (Test-Path $dosyAllDir)) {
+    New-Item -ItemType Directory -Path $dosyAllDir -Force | Out-Null
+    Write-Host "📁 DoSy All klasörü oluşturuldu: $dosyAllDir" -ForegroundColor Green
+} else {
+    Write-Host "📁 DoSy All klasörü hazır: $dosyAllDir" -ForegroundColor Green
+}
+Write-Host "   Paylaşmak istediğiniz dosyaları bu klasöre atın!" -ForegroundColor Cyan
+Write-Host ""
+
+
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     Write-Host "⚠️ Node.js bulunamadi. Lutfen once Node.js kurun: https://nodejs.org" -ForegroundColor Yellow
     Exit

@@ -11,6 +11,17 @@ echo -e "${BLUE}==========================================${NC}"
 echo -e "${GREEN}🚀 SHARE-CLI HIZLI BAŞLATICI v3.0${NC}"
 echo -e "${BLUE}==========================================${NC}"
 
+# DoSy All klasörünü masaüstünde oluştur
+DOSY_ALL_DIR="$HOME/Desktop/DoSy All"
+if [ ! -d "$DOSY_ALL_DIR" ]; then
+    mkdir -p "$DOSY_ALL_DIR"
+    echo -e "${GREEN}📁 DoSy All klasörü oluşturuldu: $DOSY_ALL_DIR${NC}"
+else
+    echo -e "${GREEN}📁 DoSy All klasörü hazır: $DOSY_ALL_DIR${NC}"
+fi
+echo -e "${BLUE}   Paylaşmak istediğiniz dosyaları bu klasöre atın!${NC}"
+echo ""
+
 # Node.js kontrolü
 if ! command -v node &> /dev/null; then
     echo -e "${YELLOW}⚠️ Node.js bulunamadı. Otomatik kuruluyor...${NC}"

@@ -16,6 +16,36 @@ try {
 
 // --- CONFIG ---
 const CONFIG_PATH = path.join(process.env.HOME || process.env.USERPROFILE, '.share-cli-config.json');
+
+// --- DoSy All KLASÖRÜ ---
+const os = require('os');
+function getDesktopPath() {
+    const home = process.env.HOME || process.env.USERPROFILE || os.homedir();
+    if (process.platform === 'win32') {
+        // Windows: Özel masaüstü yolunu kontrol et
+        const winDesktop = path.join(home, 'Desktop');
+        const winDesktopTR = path.join(home, 'Masaüstü');
+        const oneDriveDesktop = path.join(home, 'OneDrive', 'Desktop');
+        const oneDriveDesktopTR = path.join(home, 'OneDrive', 'Masaüstü');
+        if (fs.existsSync(oneDriveDesktop)) return oneDriveDesktop;
+        if (fs.existsSync(oneDriveDesktopTR)) return oneDriveDesktopTR;
+        if (fs.existsSync(winDesktopTR)) return winDesktopTR;
+        return winDesktop;
+    } else {
+        // macOS / Linux
+        return path.join(home, 'Desktop');
+    }
+}
+
+const DOSY_ALL_DIR = path.join(getDesktopPath(), 'DoSy All');
+// Klasörü oluştur (yoksa)
+if (!fs.existsSync(DOSY_ALL_DIR)) {
+    try {
+        fs.mkdirSync(DOSY_ALL_DIR, { recursive: true });
+    } catch (e) {
+        // Masaüstü yoksa bile devam et
+    }
+}
 function saveConfig(config) { fs.writeFileSync(CONFIG_PATH, JSON.stringify(config)); }
 function loadConfig() {
     if (fs.existsSync(CONFIG_PATH)) return JSON.parse(fs.readFileSync(CONFIG_PATH));
@@ -28,24 +58,7 @@ let serverProcess = null; // child process if we started the server
 let connectionMode = 'disconnected'; // 'local-server', 'remote-local', 'remote-tunnel', 'disconnected'
 let serverInfo = null; // cached /api/info response
 
-// --- WINDOWS EMOJI FIX ---
-const isWindows = process.platform === 'win32';
-const emojiMap = {
-    '🚀': '[*]', '📂': '[D]', '🏠': '[H]', '🌍': '[W]', '🔗': '[>]',
-    '📲': '[QR]', '💬': '[C]', '🚪': '[X]', '🟢': '[+]', '🔴': '[-]',
-    '✅': '[OK]', '❌': '[!!]', '⚠️': '[!]', '⏳': '[..]', '📦': '[P]',
-    '📥': '[v]', '🔑': '[K]', '🌐': '[W]', '📡': '[~]', '🛡️': '[S]',
-    '🔧': '[~]', '📋': '[=]', '🗑️': '[x]', '💡': '[i]'
-};
-function e(str) {
-    if (!isWindows) return str;
-    for (const [emoji, ascii] of Object.entries(emojiMap)) {
-        str = str.split(emoji).join(ascii);
-    }
-    return str;
-}
-
-
+// --- UI HELPERS ---
 const colors = {
     reset: "\x1b[0m",
     bright: "\x1b[1m",
@@ -203,22 +216,19 @@ async function handleDownload() {
     await question("\nDevam etmek için Enter...");
 }
 
-async function handleUpload() {
-    const filePath = await question(`\n${colors.yellow}Yüklenecek dosya yolu: ${colors.reset}`);
-    const cleanPath = filePath.trim().replace(/^'|^"|'$|"$/g, '');
-    if (!fs.existsSync(cleanPath)) {
-        console.log(`${colors.red}❌ Hata: Dosya bulunamadı!${colors.reset}`);
-    } else {
-        const filename = path.basename(cleanPath);
-        console.log(`${colors.cyan}⏳ ${filename} yükleniyor...${colors.reset}`);
+// Tek dosya yükleme yardımcı fonksiyonu
+async function uploadSingleFile(cleanPath) {
+    const filename = path.basename(cleanPath);
+    console.log(`${colors.cyan}⏳ ${filename} yükleniyor...${colors.reset}`);
 
-        const boundary = '----Boundary' + Math.random().toString(36).substring(2);
-        const header = `--${boundary}\r\nContent-Disposition: form-data; name="files"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
-        const footer = `\r\n--${boundary}--\r\n`;
-        const stat = fs.statSync(cleanPath);
-        const url = new URL('/api/upload', config.apiBase);
-        const protocol = url.protocol === 'https:' ? https : http;
+    const boundary = '----Boundary' + Math.random().toString(36).substring(2);
+    const header = `--${boundary}\r\nContent-Disposition: form-data; name="files"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
+    const footer = `\r\n--${boundary}--\r\n`;
+    const stat = fs.statSync(cleanPath);
+    const url = new URL('/api/upload', config.apiBase);
+    const protocol = url.protocol === 'https:' ? https : http;
 
+    return new Promise((resolve, reject) => {
         const upReq = protocol.request(url, {
             method: 'POST',
             headers: {
@@ -229,15 +239,115 @@ async function handleUpload() {
         }, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
-            res.on('end', () => console.log(`${colors.green}✅ Başarıyla yüklendi!${colors.reset}`));
+            res.on('end', () => {
+                console.log(`${colors.green}✅ ${filename} başarıyla yüklendi!${colors.reset}`);
+                resolve(true);
+            });
+        });
+        upReq.on('error', (err) => {
+            console.log(`${colors.red}❌ ${filename} yüklenemedi: ${err.message}${colors.reset}`);
+            resolve(false);
         });
 
         upReq.write(header);
         const fileStream = fs.createReadStream(cleanPath);
         fileStream.pipe(upReq, { end: false });
-        await new Promise(r => fileStream.on('end', r));
-        upReq.end(footer);
+        fileStream.on('end', () => upReq.end(footer));
+    });
+}
+
+async function handleUpload() {
+    // DoSy All klasöründeki dosyaları kontrol et
+    let dosyAllFiles = [];
+    if (fs.existsSync(DOSY_ALL_DIR)) {
+        try {
+            dosyAllFiles = fs.readdirSync(DOSY_ALL_DIR).filter(f => {
+                const fPath = path.join(DOSY_ALL_DIR, f);
+                return !f.startsWith('.') && fs.statSync(fPath).isFile();
+            });
+        } catch (e) { }
     }
+
+    console.log(`\n${colors.bright}${colors.cyan}📤 DOSYA YÜKLEME${colors.reset}`);
+    console.log(`${colors.dim}${"-".repeat(40)}${colors.reset}`);
+    console.log(`${colors.green}1.${colors.reset} 📁 DoSy All klasöründen seç ${colors.dim}(${dosyAllFiles.length} dosya)${colors.reset}`);
+    console.log(`${colors.green}2.${colors.reset} ✏️  Manuel dosya yolu gir`);
+    console.log(`${colors.red}0.${colors.reset} İptal`);
+    console.log(`${colors.dim}\n📂 DoSy All: ${DOSY_ALL_DIR}${colors.reset}`);
+
+    const uploadChoice = await question(`\n${colors.magenta}Seçiminiz: ${colors.reset}`);
+
+    if (uploadChoice === '1') {
+        // DoSy All klasöründen dosya seç
+        if (dosyAllFiles.length === 0) {
+            console.log(`\n${colors.yellow}⚠️  DoSy All klasörü boş!${colors.reset}`);
+            console.log(`${colors.dim}   Dosyalarınızı şu klasöre atın:${colors.reset}`);
+            console.log(`${colors.cyan}   ${DOSY_ALL_DIR}${colors.reset}`);
+            await question("\nDevam etmek için Enter...");
+            return;
+        }
+
+        console.log(`\n${colors.bright}${colors.white}DoSy All Klasöründeki Dosyalar:${colors.reset}`);
+        console.log(`${colors.white}${"-".repeat(50)}${colors.reset}`);
+        dosyAllFiles.forEach((f, i) => {
+            const fPath = path.join(DOSY_ALL_DIR, f);
+            const stat = fs.statSync(fPath);
+            const size = stat.size >= 1048576 ? (stat.size / 1024 / 1024).toFixed(2) + " MB" : (stat.size / 1024).toFixed(1) + " KB";
+            const name = f.length > 30 ? f.substring(0, 27) + "..." : f.padEnd(30);
+            console.log(`${colors.green}${(i + 1).toString().padEnd(3)}${colors.reset} | ${name} | ${size}`);
+        });
+        console.log(`${colors.white}${"-".repeat(50)}${colors.reset}`);
+        console.log(`${colors.yellow}💡 İpucu: Hepsini yüklemek için 'hepsi' yazın${colors.reset}`);
+        console.log(`${colors.yellow}   Birden fazla: '1,3,5' veya '1-5' yazın${colors.reset}`);
+
+        const fileChoice = await question(`\n${colors.yellow}Dosya no (veya 'hepsi'): ${colors.reset}`);
+
+        let selectedIndices = [];
+        const trimmedChoice = fileChoice.trim().toLowerCase();
+
+        if (trimmedChoice === 'hepsi' || trimmedChoice === 'all' || trimmedChoice === '*') {
+            selectedIndices = dosyAllFiles.map((_, i) => i);
+        } else if (trimmedChoice.includes('-')) {
+            // Aralık: "1-5"
+            const parts = trimmedChoice.split('-').map(s => parseInt(s.trim()));
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                for (let i = parts[0] - 1; i < parts[1] && i < dosyAllFiles.length; i++) {
+                    if (i >= 0) selectedIndices.push(i);
+                }
+            }
+        } else if (trimmedChoice.includes(',')) {
+            // Virgüllü: "1,3,5"
+            selectedIndices = trimmedChoice.split(',').map(s => parseInt(s.trim()) - 1).filter(i => i >= 0 && i < dosyAllFiles.length);
+        } else {
+            const idx = parseInt(trimmedChoice) - 1;
+            if (idx >= 0 && idx < dosyAllFiles.length) selectedIndices.push(idx);
+        }
+
+        if (selectedIndices.length === 0) {
+            console.log(`${colors.red}❌ Geçersiz seçim!${colors.reset}`);
+        } else {
+            console.log(`\n${colors.cyan}📤 ${selectedIndices.length} dosya yüklenecek...${colors.reset}`);
+            let successCount = 0;
+            for (const idx of selectedIndices) {
+                const filePath = path.join(DOSY_ALL_DIR, dosyAllFiles[idx]);
+                const result = await uploadSingleFile(filePath);
+                if (result) successCount++;
+            }
+            console.log(`\n${colors.green}✅ ${successCount}/${selectedIndices.length} dosya başarıyla yüklendi!${colors.reset}`);
+        }
+    } else if (uploadChoice === '2') {
+        // Manuel dosya yolu
+        const filePath = await question(`\n${colors.yellow}Yüklenecek dosya yolu: ${colors.reset}`);
+        const cleanPath = filePath.trim().replace(/^'|^"|'$|"$/g, '');
+        if (!cleanPath) {
+            // boş giriş, iptal
+        } else if (!fs.existsSync(cleanPath)) {
+            console.log(`${colors.red}❌ Hata: Dosya bulunamadı!${colors.reset}`);
+        } else {
+            await uploadSingleFile(cleanPath);
+        }
+    }
+
     await question("\nDevam etmek için Enter...");
 }
 
@@ -496,68 +606,35 @@ async function printBanner() {
         connectionMode = 'disconnected';
     }
 
-    // Auto-start tunnel if connected to local server but no tunnel exists
-    if (connectionMode === 'local-server' && serverInfo && !serverInfo.tunnelUrl) {
-        process.stdout.write(e(`${colors.cyan}⏳ Dış bağlantı (Tünel) kuruluyor...${colors.reset}`));
-        // Fire-and-forget: don't await, let it run in background
-        request('POST', '/api/tunnel/start').catch(() => { });
-        // Poll for tunnel URL for up to 20 seconds
-        let tunnelFound = false;
-        for (let t = 0; t < 20; t++) {
-            await new Promise(r => setTimeout(r, 1000));
-            process.stdout.write('.');
-            try {
-                const freshInfo = await request('GET', '/api/info');
-                if (freshInfo && freshInfo.tunnelUrl) {
-                    serverInfo = freshInfo;
-                    process.stdout.write(e(`\n${colors.green}✅ Tünel hazır: ${freshInfo.tunnelUrl}${colors.reset}\n`));
-                    tunnelFound = true;
-                    break;
-                }
-                if (freshInfo && freshInfo.tunnelError) {
-                    process.stdout.write(e(`\n${colors.red}❌ Tünel hatası: ${freshInfo.tunnelError}${colors.reset}\n`));
-                    serverInfo = freshInfo;
-                    tunnelFound = true;
-                    break;
-                }
-            } catch (e) { }
-        }
-        if (!tunnelFound) {
-            process.stdout.write(e(`\n${colors.red}❌ Tünel 20 saniye içinde kurulamadı. İnternet bağlantınızı veya güvenlik duvarını kontrol edin.${colors.reset}\n`));
-        }
-        console.log('');
-    }
-
     // Mode description
     let modeDesc;
     switch (connectionMode) {
-        case 'local-server': modeDesc = e('📡 Kendi Sunucum (localhost)'); break;
-        case 'remote-local': modeDesc = e('🏠 Yerel Ağdaki Sunucu'); break;
-        case 'remote-tunnel': modeDesc = e('🌍 Uzak Sunucu (Tünel)'); break;
-        default: modeDesc = e('❌ Bağlı Değil'); break;
+        case 'local-server': modeDesc = '📡 Kendi Sunucum (localhost)'; break;
+        case 'remote-local': modeDesc = '🏠 Yerel Ağdaki Sunucu'; break;
+        case 'remote-tunnel': modeDesc = '🌍 Uzak Sunucu (Tünel)'; break;
+        default: modeDesc = '❌ Bağlı Değil'; break;
     }
 
     console.log(`${colors.cyan}${colors.bright}╔══════════════════════════════════════════╗`);
-    console.log(e(`║   🚀 SHARE-CLI TERMINAL ARAYÜZÜ v3.0    ║`));
+    console.log(`║   🚀 SHARE-CLI TERMINAL ARAYÜZÜ v3.0    ║`);
     console.log(`╚══════════════════════════════════════════╝${colors.reset}`);
-    console.log(e(`${statusColor}${statusIcon} Durum: ${statusText}${colors.reset}   ${colors.dim}${modeDesc}${colors.reset}`));
-    console.log(e(`${colors.yellow}🔗 Sunucu:${colors.reset}  ${config.apiBase}`));
+    console.log(`${statusColor}${statusIcon} Durum: ${statusText}${colors.reset}   ${colors.dim}${modeDesc}${colors.reset}`);
+    console.log(`${colors.yellow}🔗 Sunucu:${colors.reset}  ${config.apiBase}`);
 
     if (serverInfo) {
         const localUrl = serverInfo.localUrl || serverInfo.url || '';
         const tunnelUrl = serverInfo.tunnelUrl || ((serverInfo.running && serverInfo.url) ? serverInfo.url : null);
         if (localUrl && connectionMode === 'local-server') {
-            console.log(e(`${colors.yellow}🏠 Yerel:${colors.reset}   ${localUrl}`));
+            console.log(`${colors.yellow}🏠 Yerel:${colors.reset}   ${localUrl}`);
         }
         if (tunnelUrl) {
-            console.log(e(`${colors.yellow}🌍 Tünel:${colors.reset}   ${tunnelUrl}`));
-        } else if (serverInfo.tunnelError) {
-            console.log(e(`${colors.red}🌍 Tünel Hatası:${colors.reset} ${serverInfo.tunnelError}`));
+            console.log(`${colors.yellow}🌍 Tünel:${colors.reset}   ${tunnelUrl}`);
         }
         if (serverInfo.shareDir) {
-            console.log(e(`${colors.yellow}📂 Klasör:${colors.reset}  ${serverInfo.shareDir}`));
+            console.log(`${colors.yellow}📂 Klasör:${colors.reset}  ${serverInfo.shareDir}`);
         }
     }
+    console.log(`${colors.yellow}📁 DoSy All:${colors.reset} ${DOSY_ALL_DIR}`);
     console.log(`${colors.cyan}${"-".repeat(44)}${colors.reset}\n`);
 }
 
@@ -574,27 +651,27 @@ async function mainMenu() {
         if (isConnected) {
             console.log(`${colors.green}1.${colors.reset} Dosyaları Listele`);
             console.log(`${colors.green}2.${colors.reset} Dosya İndir`);
-            console.log(`${colors.green}3.${colors.reset} Dosya Yükle`);
+            console.log(`${colors.green}3.${colors.reset} Dosya Yükle ${colors.dim}(DoSy All veya manuel)${colors.reset}`);
         } else {
             console.log(`${colors.dim}1. Dosyaları Listele (bağlantı gerekli)${colors.reset}`);
             console.log(`${colors.dim}2. Dosya İndir (bağlantı gerekli)${colors.reset}`);
             console.log(`${colors.dim}3. Dosya Yükle (bağlantı gerekli)${colors.reset}`);
         }
-        console.log(e(`${colors.blue}4.${colors.reset} 🔗 Sunucuya Bağlan / Kendi Sunucunu Başlat`));
+        console.log(`${colors.blue}4.${colors.reset} 🔗 Sunucuya Bağlan / Kendi Sunucunu Başlat`);
         if (isLocalServer) {
-            console.log(e(`${colors.blue}5.${colors.reset} 🌐 Tünel Yönetimi (Dış Erişim Aç/Kapa)`));
-            console.log(e(`${colors.blue}6.${colors.reset} 📂 Paylaşılan Klasörü Değiştir`));
+            console.log(`${colors.blue}5.${colors.reset} 🌐 Tünel Yönetimi (Dış Erişim Aç/Kapa)`);
+            console.log(`${colors.blue}6.${colors.reset} 📂 Paylaşılan Klasörü Değiştir`);
         } else {
-            console.log(e(`${colors.dim}5. 🌐 Tünel Yönetimi (kendi sunucunuzda çalışır)${colors.reset}`));
-            console.log(e(`${colors.dim}6. 📂 Paylaşılan Klasörü Değiştir (kendi sunucunuzda çalışır)${colors.reset}`));
+            console.log(`${colors.dim}5. 🌐 Tünel Yönetimi (kendi sunucunuzda çalışır)${colors.reset}`);
+            console.log(`${colors.dim}6. 📂 Paylaşılan Klasörü Değiştir (kendi sunucunuzda çalışır)${colors.reset}`);
         }
-        console.log(e(`${colors.yellow}7.${colors.reset} 📲 Sunucu Bilgileri & QR Kodları`));
+        console.log(`${colors.yellow}7.${colors.reset} 📲 Sunucu Bilgileri & QR Kodları`);
         if (isConnected) {
-            console.log(e(`${colors.magenta}8.${colors.reset} 💬 Chat Odasına Katıl`));
+            console.log(`${colors.magenta}8.${colors.reset} 💬 Chat Odasına Katıl`);
         } else {
-            console.log(e(`${colors.dim}8. 💬 Chat Odasına Katıl (bağlantı gerekli)${colors.reset}`));
+            console.log(`${colors.dim}8. 💬 Chat Odasına Katıl (bağlantı gerekli)${colors.reset}`);
         }
-        console.log(e(`${colors.red}9.${colors.reset} 🚪 Çıkış`));
+        console.log(`${colors.red}9.${colors.reset} 🚪 Çıkış`);
 
         const choice = await question(`\n${colors.magenta}Seçiminiz: ${colors.reset}`);
 
@@ -649,10 +726,6 @@ async function mainMenu() {
                         } else {
                             console.log(`${colors.cyan}(QR Kodu için: npm install qrcode-terminal)${colors.reset}`);
                         }
-                    } else if (info.tunnelError) {
-                        console.log(`\n${colors.red}❌ İNTERNET/TÜNEL BAĞLANTISI HATASI:${colors.reset}`);
-                        console.log(`${info.tunnelError}`);
-                        console.log(`${colors.cyan}(Tavsiye: 5 numaralı menüden tüneli manuel başlatmayı deneyin)${colors.reset}`);
                     }
 
                     if (info.publicIp) {
