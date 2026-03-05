@@ -57,7 +57,7 @@ npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel -
 
 $serverRunning = $false
 try {
-    $res = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
+    $null = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
     $serverRunning = $true
     Write-Host "✅ Mevcut sunucu tespit edildi (localhost:3000)" -ForegroundColor Green
 }

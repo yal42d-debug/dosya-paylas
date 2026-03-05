@@ -7,5 +7,15 @@ build.log
 install.log
 licenses.log
 server_log.txt
+server.log
 uploads/
 gradle-7.6/
+node_modules_old/
+apk-mod/
+mobile-app-eski/
+yedek-inceleme/
+*.xml
+*.txt
+*.png
+!README.md
+!BASLAT.command

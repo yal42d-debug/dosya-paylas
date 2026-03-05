@@ -2,19 +2,39 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const ip = require('ip');
 const QRCode = require('qrcode');
 const qrcodeTerminal = require('qrcode-terminal');
 const cors = require('cors');
 const archiver = require('archiver');
 const localtunnel = require('localtunnel');
 const https = require('https');
+const os = require('os');
 
 const app = express();
 const PORT = 3000;
 
+// Cross-platform Desktop Path Helper
+function getDesktopPath() {
+  const home = os.homedir();
+  if (process.platform === 'win32') {
+    const winDesktop = path.join(home, 'Desktop');
+    const winDesktopTR = path.join(home, 'Masaüstü');
+    const oneDriveDesktop = path.join(home, 'OneDrive', 'Desktop');
+    const oneDriveDesktopTR = path.join(home, 'OneDrive', 'Masaüstü');
+    if (fs.existsSync(oneDriveDesktop)) return oneDriveDesktop;
+    if (fs.existsSync(oneDriveDesktopTR)) return oneDriveDesktopTR;
+    if (fs.existsSync(winDesktopTR)) return winDesktopTR;
+    return winDesktop;
+  }
+  return path.join(home, 'Desktop');
+}
+
+// Default to Masaüstü/DoSy All
+const DEFAULT_DIR = path.join(getDesktopPath(), 'DoSy All');
+
 // Shared directory logic
-let UPLOAD_DIR = path.join(__dirname, 'uploads');
+let UPLOAD_DIR = DEFAULT_DIR;
+
 const dirArgIndex = process.argv.indexOf('--dir');
 if (dirArgIndex !== -1 && process.argv[dirArgIndex + 1]) {
   const targetDir = process.argv[dirArgIndex + 1];
@@ -23,22 +43,50 @@ if (dirArgIndex !== -1 && process.argv[dirArgIndex + 1]) {
 
 // Ensure directory exists
 if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    console.log(`📁 Klasör oluşturuldu: ${UPLOAD_DIR}`);
+  } catch (e) {
+    console.error(`❌ Klasör oluşturulamadı: ${e.message}`);
+    // Fallback to local uploads if Desktop is not accessible
+    if (UPLOAD_DIR !== path.join(__dirname, 'uploads')) {
+      UPLOAD_DIR = path.join(__dirname, 'uploads');
+      if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    }
+  }
 }
 
 // Global state
 let currentTunnelUrl = null;
 let tunnelError = null;
-let publicIp = 'Yükleniyor...';
-const localIp = ip.address();
+
+function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
+const localIp = getLocalIp();
 const serverUrl = `http://${localIp}:${PORT}`;
 
-// Fetch Public IP (for localtunnel bypass)
-https.get('https://api.ipify.org', (resp) => {
-  let data = '';
-  resp.on('data', (chunk) => data += chunk);
-  resp.on('end', () => { publicIp = data; });
-}).on("error", (err) => { console.error("IP Error: " + err.message); });
+// Fetch Public IP asynchronously after startup
+let publicIp = 'Bekleniyor...';
+setTimeout(() => {
+  https.get('https://api.ipify.org', (resp) => {
+    let data = '';
+    resp.on('data', (chunk) => data += chunk);
+    resp.on('end', () => { publicIp = data; });
+  }).on("error", (err) => {
+    console.warn("Public IP alınamadı (localtunnel şifresi için gerekli): " + err.message);
+    publicIp = 'Hata';
+  });
+}, 2000);
 
 // Middleware
 app.use(cors({
@@ -220,64 +268,70 @@ app.post('/api/tunnel/stop', (req, res) => {
 
 // START LOGIC
 async function startServer() {
+  // Global error handlers to prevent process crash
+  process.on('uncaughtException', (err) => {
+    console.error('❌ Beklenmeyen Hata (Process):', err.message);
+    if (err.message.includes('localtunnel')) {
+      currentTunnelUrl = null;
+      tunnelError = err.message;
+    }
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Beklenmeyen Rejection (Process):', reason);
+  });
+
   app.listen(PORT, '0.0.0.0', async () => {
     console.log('📡 Tünel/Dış Bağlantı başlatılıyor (localtunnel)...');
 
-    async function attemptTunnel(retries = 3) {
+    async function attemptTunnel(retries = 2) {
       for (let i = 0; i < retries; i++) {
         try {
           tunnelError = null;
           // Set a strict 5-second timeout for localtunnel connection. 
-          // Localtunnel servers can sometimes hang indefinitely.
           const tunnel = await Promise.race([
             localtunnel({ port: PORT }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Localtunnel bağlantısında zaman aşımı (Timeout) yaşandı. Tünel sunucusu çökmüş veya engellenmiş olabilir.')), 5000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Localtunnel bağlantısında zaman aşımı (Timeout) yaşandı.')), 8000))
           ]);
 
-          tunnel.on('error', (err) => {
-            console.error('❌ Tünel koptu:', err.message);
-            currentTunnelUrl = null;
-            tunnelError = err.message;
-          });
-          currentTunnelUrl = tunnel.url;
-          if (currentTunnelUrl) {
+          if (tunnel) {
+            tunnel.on('error', (err) => {
+              console.error('❌ Tünel koptu:', err.message);
+              currentTunnelUrl = null;
+              tunnelError = err.message;
+            });
+            currentTunnelUrl = tunnel.url;
             console.log(`✅ Tünel aktif: ${currentTunnelUrl}`);
             return true;
           }
         } catch (e) {
           console.warn(`⚠️ Tünel denemesi ${i + 1} başarısız: ${e.message}`);
           tunnelError = e.message;
-          await new Promise(r => setTimeout(r, 2000));
+          // Wait a bit before retry
+          if (i < retries - 1) await new Promise(r => setTimeout(r, 2000));
         }
       }
+      console.log('ℹ️ Tünel başlatılamadı, yerel ağda devam ediliyor.');
       return false;
     }
 
-    await attemptTunnel();
+    // Try to start tunnel, but don't block everything if it fails
+    attemptTunnel().catch(err => {
+      console.error('❌ Tünel başlatma sırasında hata:', err.message);
+    });
 
-    console.clear();
     console.log('\x1b[36m%s\x1b[0m', '===================================================');
     console.log('\x1b[32m%s\x1b[0m', '🚀 DOSYA PAYLAŞIM SUNUCUSU AKTİF');
     console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
     console.log(`📂 Klasör: ${UPLOAD_DIR}`);
     console.log(`🏠 Yerel Ağ: ${serverUrl}`);
-    if (currentTunnelUrl) {
-      console.log(`🌍 İnternet: ${currentTunnelUrl}`);
-      console.log(`🔑 Tünel Şifresi (Public IP): ${publicIp}`);
-    }
     console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
 
     console.log('\n\x1b[33m%s\x1b[0m', '📲 YEREL AĞ QR KODU (Ev/Ofis İçi):');
-    console.log(' (Telefonunuzdaki APK ile bu kodu taratın)\n');
     qrcodeTerminal.generate(serverUrl, { small: true });
 
-    if (currentTunnelUrl) {
-      console.log('\n\x1b[33m%s\x1b[0m', '🌍 İNTERNET/TÜNEL QR KODU (Dışarıdan Erişim):');
-      qrcodeTerminal.generate(currentTunnelUrl, { small: true });
-    }
     console.log('\n\x1b[36m%s\x1b[0m', '---------------------------------------------------\n');
   });
 }
 
 startServer();
-

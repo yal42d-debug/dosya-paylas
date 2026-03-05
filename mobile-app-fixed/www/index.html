@@ -508,6 +508,20 @@
                 <img id="qr-local-img" src="" alt="Local QR" style="width: 200px; height: 200px; border-radius: 8px;">
                 <p style="color: var(--secondary-text); margin-top: 10px; font-size: 0.85rem;">Aynı Wi-Fi ağındakiler
                     için</p>
+                <div id="local-info-box"
+                    style="margin-top: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; text-align: left;">
+                    <p
+                        style="color: var(--secondary-text); font-size: 0.75rem; margin: 0 0 6px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        📡 Bağlantı Bilgileri</p>
+                    <p style="color: var(--primary-color); font-size: 0.85rem; margin: 4px 0; word-break: break-all;"
+                        id="local-url-text">Yükleniyor...</p>
+                    <div style="display: flex; gap: 16px; margin-top: 6px;">
+                        <span style="color: var(--text-color); font-size: 0.8rem;">🏠 IP: <strong
+                                id="local-ip-text">-</strong></span>
+                        <span style="color: var(--text-color); font-size: 0.8rem;">🔌 Port: <strong
+                                id="local-port-text">-</strong></span>
+                    </div>
+                </div>
             </div>
 
             <!-- Wi-Fi Tab -->
@@ -812,8 +826,26 @@
             fetch('/api/info')
                 .then(res => res.json())
                 .then(data => {
-                    localQrData = data.qrCode;
-                    document.getElementById('qr-local-img').src = localQrData;
+                    const localUrl = data.url || data.localUrl;
+
+                    if (data.qrCode) {
+                        localQrData = data.qrCode;
+                        document.getElementById('qr-local-img').src = localQrData;
+                    } else if (localUrl) {
+                        generateQr(localUrl, 'qr-local-img');
+                    }
+
+                    // Lokal QR altına bağlantı bilgilerini yaz
+                    if (localUrl) {
+                        document.getElementById('local-url-text').textContent = localUrl;
+                    }
+                    if (data.ip) {
+                        document.getElementById('local-ip-text').textContent = data.ip;
+                    }
+                    if (data.port) {
+                        document.getElementById('local-port-text').textContent = data.port;
+                    }
+
                     // Update server status with real IP
                     if (data.ip && !isRemoteMode) {
                         setServerReady(data.ip);
