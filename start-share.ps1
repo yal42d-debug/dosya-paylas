@@ -42,8 +42,43 @@ Write-Host ""
 
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "⚠️ Node.js bulunamadi. Lutfen once Node.js kurun: https://nodejs.org" -ForegroundColor Yellow
-    Exit
+    Write-Host "⚠️ Node.js bulunamadi. Otomatik kuruluyor..." -ForegroundColor Yellow
+    $nodeInstalled = $false
+
+    # Yontem 1: winget (Windows 10/11'de genellikle hazir)
+    if (-not $nodeInstalled -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Write-Host "📦 winget ile Node.js LTS kuruluyor..." -ForegroundColor Cyan
+        try {
+            winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+            $env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            if (Get-Command node -ErrorAction SilentlyContinue) { $nodeInstalled = $true }
+        } catch { }
+    }
+
+    # Yontem 2: Resmi MSI'yi indirip kur
+    if (-not $nodeInstalled) {
+        try {
+            Write-Host "📥 Node.js indiriliyor, lutfen bekleyin..." -ForegroundColor Cyan
+            $arch = if ([System.Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
+            $releases = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -UseBasicParsing
+            $ltsVer = ($releases | Where-Object { $_.lts -ne $false } | Select-Object -First 1).version
+            $msiUrl = "https://nodejs.org/dist/$ltsVer/node-$ltsVer-$arch.msi"
+            $msiPath = Join-Path $env:TEMP "nodejs-setup.msi"
+            Invoke-WebRequest -Uri $msiUrl -OutFile $msiPath -UseBasicParsing
+            Write-Host "⚙️ Node.js kuruluyor (UAC onay penceresi acilabilir, Evet'e basin)..." -ForegroundColor Cyan
+            Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /norestart" -Verb RunAs -Wait
+            $env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            if (Get-Command node -ErrorAction SilentlyContinue) { $nodeInstalled = $true }
+        } catch {
+            Write-Host "❌ Otomatik kurulum basarisiz: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+
+    if (-not $nodeInstalled) {
+        Write-Host "❌ Node.js kurulamadi. Manuel kurun: https://nodejs.org" -ForegroundColor Red
+        Exit
+    }
+    Write-Host "✅ Node.js basariyla kuruldu!" -ForegroundColor Green
 }
 
 $tempFolder = [System.IO.Path]::GetTempPath()

@@ -25,16 +25,41 @@ echo ""
 # Node.js kontrolü
 if ! command -v node &> /dev/null; then
     echo -e "${YELLOW}⚠️ Node.js bulunamadı. Otomatik kuruluyor...${NC}"
+    NODE_INSTALLED=false
+
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        if ! command -v brew &> /dev/null; then
-            echo -e "${RED}Lütfen önce Homebrew kurun veya Node.js'i manuel yükleyin.${NC}"
-            exit 1
+        # Yöntem 1: Homebrew varsa kullan
+        if command -v brew &> /dev/null; then
+            brew install node && NODE_INSTALLED=true
         fi
-        brew install node
+        # Yöntem 2: Resmi .pkg dosyasını indir ve kur
+        if [ "$NODE_INSTALLED" = false ]; then
+            echo -e "${BLUE}📥 Node.js indiriliyor...${NC}"
+            LTS_VER=$(curl -sL "https://nodejs.org/dist/latest-lts/SHASUMS256.txt" | grep -o 'node-v[0-9.]*' | head -1 | grep -o 'v[0-9.]*')
+            if [ -n "$LTS_VER" ]; then
+                PKG_URL="https://nodejs.org/dist/latest-lts/node-${LTS_VER}.pkg"
+                curl -sL "$PKG_URL" -o "/tmp/nodejs-setup.pkg"
+                echo -e "${BLUE}⚙️ Kuruluyor (Mac şifrenizi girmeniz istenebilir)...${NC}"
+                sudo installer -pkg "/tmp/nodejs-setup.pkg" -target /
+                command -v node &> /dev/null && NODE_INSTALLED=true
+            fi
+        fi
     else
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-        sudo apt-get install -y nodejs
+        # Linux
+        if command -v apt-get &> /dev/null; then
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs && NODE_INSTALLED=true
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y nodejs && NODE_INSTALLED=true
+        elif command -v yum &> /dev/null; then
+            sudo yum install -y nodejs && NODE_INSTALLED=true
+        fi
     fi
+
+    if [ "$NODE_INSTALLED" = false ]; then
+        echo -e "${RED}❌ Node.js kurulamadı. Manuel kurun: https://nodejs.org${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✅ Node.js başarıyla kuruldu!${NC}"
 fi
 
 # Çalışma dizini
