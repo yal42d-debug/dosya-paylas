@@ -2,6 +2,8 @@
 $OutputEncoding = [System.Text.Encoding]::UTF8
 try { chcp 65001 | Out-Null } catch { }
 $env:NODE_NO_WARNINGS = "1"
+# npm.ps1 gibi script dosyalarının calismasi icin (sadece bu oturum icin)
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "🚀 SHARE-CLI HIZLI BASLATICI v3.0 (Windows)" -ForegroundColor Green

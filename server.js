@@ -266,6 +266,11 @@ app.post('/api/tunnel/stop', (req, res) => {
   res.json({ message: 'Stopped' });
 });
 
+app.post('/api/shutdown', (req, res) => {
+  res.json({ message: 'Shutting down' });
+  setTimeout(() => process.exit(0), 100);
+});
+
 // START LOGIC
 async function startServer() {
   // Global error handlers to prevent process crash
@@ -296,16 +301,18 @@ async function startServer() {
 
           if (tunnel) {
             tunnel.on('error', (err) => {
-              console.error('❌ Tünel koptu:', err.message);
-              currentTunnelUrl = null;
+              if (currentTunnelUrl === tunnel.url) currentTunnelUrl = null;
               tunnelError = err.message;
+              setTimeout(() => attemptTunnel(999), 5000);
+            });
+            tunnel.on('close', () => {
+              if (currentTunnelUrl === tunnel.url) currentTunnelUrl = null;
+              setTimeout(() => attemptTunnel(999), 5000);
             });
             currentTunnelUrl = tunnel.url;
-            console.log(`✅ Tünel aktif: ${currentTunnelUrl}`);
             return true;
           }
         } catch (e) {
-          console.warn(`⚠️ Tünel denemesi ${i + 1} başarısız: ${e.message}`);
           tunnelError = e.message;
           // Wait a bit before retry
           if (i < retries - 1) await new Promise(r => setTimeout(r, 2000));

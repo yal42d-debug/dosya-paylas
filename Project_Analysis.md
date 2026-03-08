@@ -1,6 +1,6 @@
 # 📋 Dosya Paylaş — Proje Analizi
 
-> **Son Güncelleme:** 2 Mart 2026 — v1.3.0
+> **Son Güncelleme:** 6 Mart 2026 — v1.7.5
 > Bu dosya her kod değişikliğinde otomatik güncellenir.
 
 ## Genel Bakış
@@ -76,7 +76,7 @@
 | Firebase entegrasyonu | ✅ Config kaydetme, dosya yükleme |
 | Başka sunucuya bağlanma (QR ile) | ✅ BASE_URL değiştirme |
 | Yerel Node.js sunucu | ✅ `nodejs-mobile-cordova` |
-| Bildirimler | ✅ `local-notification` |
+| Bildirimler | ❌ `local-notification` kaldırıldı (AndroidX uyumsuz) |
 
 ### 3.2 Mobil Sunucu — `mobile-app-fixed/server.js` (226 satır)
 
@@ -88,7 +88,7 @@
 | GitHub Gist güncelleme | ✅ İnternet keşfi için |
 | Kaynak kodu ZIP indirme | ✅ `/download-app` |
 
-### 3.3 Cordova Plugin'leri (11 adet)
+### 3.3 Cordova Plugin'leri (10 adet)
 
 | Plugin | Amaç |
 |--------|------|
@@ -97,7 +97,6 @@
 | `cordova-plugin-file` | Dosya sistemi erişimi |
 | `cordova-plugin-file-transfer` | Dosya indirme |
 | `cordova-plugin-file-opener2` | İndirilen dosyaları açma |
-| `cordova-plugin-local-notification` | Bildirimler |
 | `cordova-plugin-inappbrowser` | Uygulama içi tarayıcı |
 | `cordova-plugin-android-permissions` | İzin yönetimi |
 | `cordova-plugin-customurlscheme` | `localfileshare://` URL |
@@ -151,6 +150,9 @@
 |-------|-------|------------|
 | 2 Mart 2026 | v1.0.0 | İlk analiz oluşturuldu |
 | 2 Mart 2026 | v1.3.0 | Native HTTP ile Localtunnel Bypass (cordova-plugin-advanced-http eklendi, Web UI ve CLI Server güncellendi). Chat API eklendi. |
+| 6 Mart 2026 | v1.7.3 | APK build ve versiyon güncellemeleri yapıldı. |
+| 6 Mart 2026 | v1.7.4 | Test için APK derlendi ve emülatörde açıldı. |
+| 6 Mart 2026 | v1.7.5 | Android platform cordova-android@12.0.1 ile yeniden kuruldu. Build toolchain düzeltildi (Gradle 7.6.4, AGP 7.4.2, build-tools 34.0.0). `cordova-plugin-local-notification` kaldırıldı (AndroidX uyumsuz). `nodejs-mobile-cordova` minSdk 22->24. Eksik `node_modules` yüklendi. `libnode.so` jniLibs'e kopyalandı. Emülatörde başarıyla çalıştırıldı. |
 
 ---
 

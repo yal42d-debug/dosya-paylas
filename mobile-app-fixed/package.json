@@ -15,33 +15,49 @@
   "cordova": {
     "platforms": [],
     "plugins": {
-      "nodejs-mobile-cordova": {},
-      "cordova-plugin-device": {},
-      "cordova-plugin-file": {
-        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
-      },
-      "cordova-plugin-file-opener2": {},
-      "cordova-plugin-inappbrowser": {},
-      "cordova-plugin-file-transfer": {},
-      "cordova-plugin-android-permissions": {},
-      "cordova-plugin-local-notification": {},
       "cordova-plugin-customurlscheme": {
         "URL_SCHEME": "localfileshare",
         "ANDROID_SCHEME": " ",
         "ANDROID_HOST": " ",
         "ANDROID_PATHPREFIX": "/"
       },
-      "cordova-plugin-android-intent": {},
+      "cordova-plugin-device": {},
+      "cordova-plugin-file": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
+      },
+      "cordova-plugin-file-opener2": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
+      },
+      "cordova-plugin-inappbrowser": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
+      },
+      "cordova-plugin-file-transfer": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
+      },
+      "cordova-plugin-android-permissions": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
+      },
+      "cordova-plugin-android-intent": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
+      },
       "phonegap-plugin-barcodescanner": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0",
         "ANDROID_SUPPORT_V4_VERSION": "27.+"
       },
       "cordova-plugin-advanced-http": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0",
+        "ANDROID_SUPPORT_V4_VERSION": "27.+",
+        "ANDROIDBLACKLISTSECURESOCKETPROTOCOLS": "SSLv3,TLSv1"
+      },
+      "nodejs-mobile-cordova": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0",
+        "ANDROID_SUPPORT_V4_VERSION": "27.+",
         "ANDROIDBLACKLISTSECURESOCKETPROTOCOLS": "SSLv3,TLSv1"
       }
     }
   },
   "devDependencies": {
-    "cordova-android": "^14.0.1",
+    "cordova-android": "^12.0.1",
     "cordova-plugin-advanced-http": "^3.3.1",
     "cordova-plugin-android-intent": "^1.0.0",
     "cordova-plugin-android-permissions": "^1.1.5",
@@ -51,7 +67,6 @@
     "cordova-plugin-file-opener2": "^4.0.0",
     "cordova-plugin-file-transfer": "^2.0.0",
     "cordova-plugin-inappbrowser": "^6.0.0",
-    "cordova-plugin-local-notification": "^1.2.3",
     "nodejs-mobile-cordova": "^0.4.3",
     "phonegap-plugin-barcodescanner": "^8.1.0"
   }

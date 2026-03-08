@@ -651,8 +651,14 @@ async function mainMenu() {
         const initCheck = await testConnection(config.apiBase, 3000);
         if (initCheck.success) {
             await request('POST', '/api/set-dir', { dir: DOSY_ALL_DIR });
+        } else {
+            console.log("\nOtomatik olarak yerel sunucu başlatılıyor...");
+            await startLocalServer();
         }
-    } catch (e) { }
+    } catch (e) {
+        console.log("\nOtomatik olarak yerel sunucu başlatılıyor...");
+        await startLocalServer();
+    }
 
     while (true) {
         await printBanner();
@@ -732,14 +738,19 @@ async function mainMenu() {
                     }
 
                     const tunnelUrl = info.tunnelUrl;
+                    console.log(`\n${colors.yellow}🌍 İNTERNET/TÜNEL BAĞLANTISI:${colors.reset}`);
                     if (tunnelUrl) {
-                        console.log(`\n${colors.yellow}🌍 İNTERNET/TÜNEL BAĞLANTISI:${colors.reset}`);
                         console.log(`${tunnelUrl}`);
                         if (qrcodeTerminal) {
                             qrcodeTerminal.generate(tunnelUrl, { small: true });
                         } else {
                             console.log(`${colors.cyan}(QR Kodu için: npm install qrcode-terminal)${colors.reset}`);
                         }
+                    } else if (info.tunnelError) {
+                        console.log(`${colors.red}❌ Tünel Bağlantı Hatası: ${info.tunnelError}${colors.reset}`);
+                        console.log(`${colors.dim}   (Sunucu otomatik olarak yeniden bağlanmaya çalışıyor...)${colors.reset}`);
+                    } else {
+                        console.log(`${colors.yellow}⏳ Tünel bağlantısı bekleniyor veya kapalı...${colors.reset}`);
                     }
 
                     if (info.publicIp) {
@@ -752,12 +763,10 @@ async function mainMenu() {
                 await handleChat();
             }
             else if (choice === '9') {
-                if (serverProcess) {
-                    console.log(`${colors.yellow}Sunucu kapatılıyor...${colors.reset}`);
-                    serverProcess.kill();
-                }
+                console.log(`${colors.yellow}Sunucu kapatılıyor...${colors.reset}`);
+                shutdownServer();
                 console.log("Güle güle!");
-                process.exit(0);
+                setTimeout(() => process.exit(0), 100);
             }
             else if (['1', '2', '3', '8'].includes(choice) && !isConnected) {
                 console.log(`${colors.red}⚠️  Önce bir sunucuya bağlanmalısınız. (Seçenek 4)${colors.reset}`);
@@ -771,12 +780,21 @@ async function mainMenu() {
 }
 
 // Cleanup on exit
-process.on('exit', () => {
-    if (serverProcess) serverProcess.kill();
-});
-process.on('SIGINT', () => {
-    if (serverProcess) serverProcess.kill();
-    process.exit(0);
-});
+function shutdownServer() {
+    if (serverProcess) {
+        try { serverProcess.kill(); } catch (e) { }
+    }
+    try {
+        if (config.apiBase === 'http://localhost:3000' || connectionMode === 'local-server') {
+            const { execSync } = require('child_process');
+            execSync('curl -s -X POST http://localhost:3000/api/shutdown || true');
+        }
+    } catch (e) { }
+}
+
+process.on('exit', () => shutdownServer());
+process.on('SIGINT', () => { shutdownServer(); setTimeout(() => process.exit(0), 100); });
+process.on('SIGHUP', () => { shutdownServer(); setTimeout(() => process.exit(0), 100); });
+process.on('SIGTERM', () => { shutdownServer(); setTimeout(() => process.exit(0), 100); });
 
 mainMenu();
