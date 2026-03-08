@@ -89,8 +89,8 @@ $tmpDir = New-Item -ItemType Directory -Path $tmpDirName
 Set-Location $tmpDir.FullName
 
 Write-Host "📦 Bagimliliklar hazirlaniyor..." -ForegroundColor Cyan
-npm init -y 2>&1 | Out-Null
-npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel --silent --no-fund --no-audit 2>&1 | Out-Null
+cmd /c "npm init -y" 2>&1 | Out-Null
+cmd /c "npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel --silent --no-fund --no-audit" 2>&1 | Out-Null
 
 $serverRunning = $false
 try {
