@@ -1,4 +1,4 @@
-const express = require('express');
+console.log('1'); const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -10,8 +10,8 @@ const localtunnel = require('localtunnel');
 const https = require('https');
 const os = require('os');
 
-const app = express();
-const PORT = 3000;
+console.log('2'); const app = express();
+console.log('3'); const PORT = 3000;
 
 // Cross-platform Desktop Path Helper
 function getDesktopPath() {
@@ -72,7 +72,7 @@ function getLocalIp() {
   return '127.0.0.1';
 }
 
-const localIp = getLocalIp();
+console.log('4'); const localIp = getLocalIp();
 const serverUrl = `http://${localIp}:${PORT}`;
 
 // Fetch Public IP asynchronously after startup
@@ -89,7 +89,7 @@ setTimeout(() => {
 }, 2000);
 
 // Middleware
-app.use(cors({
+console.log('5'); app.use(cors({
   allowedHeaders: ['Content-Type', 'Bypass-Tunnel-Reminder'],
   exposedHeaders: ['Bypass-Tunnel-Reminder']
 }));
@@ -266,13 +266,8 @@ app.post('/api/tunnel/stop', (req, res) => {
   res.json({ message: 'Stopped' });
 });
 
-app.post('/api/shutdown', (req, res) => {
-  res.json({ message: 'Shutting down' });
-  setTimeout(() => process.exit(0), 100);
-});
-
 // START LOGIC
-async function startServer() {
+console.log('6'); async function startServer() {
   // Global error handlers to prevent process crash
   process.on('uncaughtException', (err) => {
     console.error('[X] Beklenmeyen Hata (Process):', err.message);
@@ -286,7 +281,7 @@ async function startServer() {
     console.error('[X] Beklenmeyen Rejection (Process):', reason);
   });
 
-  app.listen(PORT, '0.0.0.0', async () => {
+  console.log('7'); app.listen(PORT, '0.0.0.0', async () => { console.log('8');
     console.log('[~] Tünel/Dış Bağlantı başlatılıyor (localtunnel)...');
 
     async function attemptTunnel(retries = 2) {
@@ -301,18 +296,16 @@ async function startServer() {
 
           if (tunnel) {
             tunnel.on('error', (err) => {
-              if (currentTunnelUrl === tunnel.url) currentTunnelUrl = null;
+              console.error('[X] Tünel koptu:', err.message);
+              currentTunnelUrl = null;
               tunnelError = err.message;
-              setTimeout(() => attemptTunnel(999), 5000);
-            });
-            tunnel.on('close', () => {
-              if (currentTunnelUrl === tunnel.url) currentTunnelUrl = null;
-              setTimeout(() => attemptTunnel(999), 5000);
             });
             currentTunnelUrl = tunnel.url;
+            console.log(`[+] Tünel aktif: ${currentTunnelUrl}`);
             return true;
           }
         } catch (e) {
+          console.warn(`[!] Tünel denemesi ${i + 1} başarısız: ${e.message}`);
           tunnelError = e.message;
           // Wait a bit before retry
           if (i < retries - 1) await new Promise(r => setTimeout(r, 2000));
@@ -341,4 +334,4 @@ async function startServer() {
   });
 }
 
-startServer();
+console.log('9'); startServer(); console.log('10');
