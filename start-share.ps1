@@ -210,20 +210,10 @@ if (-not $serverRunning) {
     }
 }
 
-# CLI aracini indir (yoksa veya 1 gunden eskiyse)
+# CLI aracini her zaman guncelden indir
 $cliFile = "share-cli.js"
-$needDownload = $true
-if (Test-Path $cliFile) {
-    $fileAge = (Get-Date) - (Get-Item $cliFile).LastWriteTime
-    if ($fileAge.TotalSeconds -lt 86400) {
-        $needDownload = $false
-        ok "CLI araci hazir (cache)"
-    }
-}
-if ($needDownload) {
-    nfo "CLI araci indiriliyor..."
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(Get-Random)" -OutFile $cliFile -UseBasicParsing
-}
+nfo "CLI araci guncelleniyor..."
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(Get-Random)" -OutFile $cliFile -UseBasicParsing
 
 if (Test-Path $cliFile) {
     ok "Baslatiliyor..."

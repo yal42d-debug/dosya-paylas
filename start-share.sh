@@ -161,20 +161,10 @@ if [ "$SERVER_RUNNING" = false ]; then
     fi
 fi
 
-# CLI aracini indir (yoksa veya 1 gunden eskiyse)
+# CLI aracini her zaman guncelden indir
 CLI_FILE="share-cli.js"
-NEED_DOWNLOAD=true
-if [ -f "$CLI_FILE" ]; then
-    FILE_AGE=$(( $(date +%s) - $(stat -f%m "$CLI_FILE" 2>/dev/null || stat -c%Y "$CLI_FILE" 2>/dev/null || echo 0) ))
-    if [ "$FILE_AGE" -lt 86400 ]; then
-        NEED_DOWNLOAD=false
-        ok "CLI araci hazir (cache)"
-    fi
-fi
-if [ "$NEED_DOWNLOAD" = true ]; then
-    info "CLI araci indiriliyor..."
-    curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "$CLI_FILE"
-fi
+info "CLI araci guncelleniyor..."
+curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "$CLI_FILE"
 
 if [ -f "$CLI_FILE" ]; then
     ok "Baslatiliyor..."
