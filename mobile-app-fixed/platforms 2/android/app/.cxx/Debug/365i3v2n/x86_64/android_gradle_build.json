@@ -1,0 +1,38 @@
+{
+  "buildFiles": [
+    "/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/libs/cdvnodejsmobile/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/yalcindegirmenci/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/.cxx/Debug/365i3v2n/x86_64",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/yalcindegirmenci/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/.cxx/Debug/365i3v2n/x86_64",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "nodejs-mobile-cordova-native-lib::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "x86_64",
+      "artifactName": "nodejs-mobile-cordova-native-lib",
+      "output": "/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86_64/libnodejs-mobile-cordova-native-lib.so",
+      "runtimeFiles": []
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "/Users/yalcindegirmenci/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang.lld",
+      "cppCompilerExecutable": "/Users/yalcindegirmenci/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++.lld"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local File Share</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --chat-bg: #f0f4ff;
+            --chat-bubble-mine: #3b82f6;
+            --chat-bubble-other: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 24px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .qr-section {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .qr-section img {
+            width: 150px;
+            height: 150px;
+        }
+
+        .upload-section {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 32px;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-section:hover,
+        .upload-section.drag-over {
+            border-color: var(--primary-color);
+            background-color: #eff6ff;
+        }
+
+        .btn {
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: inline-block;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 250px;
+        }
+
+        .file-actions a,
+        .file-actions button {
+            text-decoration: none;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+            margin-left: 10px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .file-actions button {
+            color: var(--danger-color);
+        }
+
+        #status-msg {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            height: 20px;
+        }
+
+        /* Chat Section */
+        .chat-section {
+            margin-top: 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-align: left;
+        }
+
+        .chat-messages {
+            height: 250px;
+            overflow-y: auto;
+            padding: 12px;
+            background: var(--chat-bg);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-msg {
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .chat-msg.other {
+            background: var(--chat-bubble-other);
+            color: var(--text-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-msg.mine {
+            background: var(--chat-bubble-mine);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-msg .msg-sender {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+            opacity: 0.7;
+        }
+
+        .chat-msg .msg-time {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .chat-msg a {
+            color: inherit;
+            text-decoration: underline;
+        }
+
+        .chat-input-area {
+            display: flex;
+            border-top: 1px solid var(--border-color);
+            background: white;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            border: none;
+            padding: 12px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .chat-input-area button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .chat-input-area button:hover {
+            opacity: 0.9;
+        }
+
+        .chat-empty {
+            text-align: center;
+            color: #9ca3af;
+            padding: 40px 0;
+            font-size: 0.9rem;
+        }
+
+        .apk-section {
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 16px;
+            }
+
+            .chat-messages {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>🚀 Local File Share</h1>
+
+        <div class="qr-section" id="qr-section">
+            <!-- WiFi QR will be shown here if configured -->
+            <div id="wifi-qr-area" style="display:none;">
+                <p style="margin-top:0; font-size: 0.9rem; color: #6b7280;">📶 Step 1: Scan to connect WiFi</p>
+                <img id="wifi-qr-code" src="" alt="WiFi QR Code" style="width:150px;height:150px;">
+                <p id="wifi-ssid-display"
+                    style="font-family:monospace; font-size:0.9rem; color:#10b981; margin-bottom:5px;"></p>
+            </div>
+            <div id="server-qr-area">
+                <p style="margin-top:0; font-size: 0.9rem; color: #6b7280;" id="server-qr-label">Scan to connect via
+                    Mobile</p>
+                <img id="qr-code" src="" alt="QR Code" style="width:150px;height:150px;">
+                <p id="server-url" style="font-family: monospace; font-size: 1rem; margin-bottom: 0;">Loading...</p>
+            </div>
+            <!-- WiFi Config Toggle -->
+            <div style="margin-top:12px;">
+                <button class="btn btn-primary" style="font-size:0.8rem; padding:6px 14px;"
+                    onclick="toggleWifiConfig()">⚙️ WiFi Hotspot Settings</button>
+            </div>
+            <div id="wifi-config-form" style="display:none; margin-top:12px; text-align:left;">
+                <div style="margin-bottom:8px;">
+                    <label style="font-size:0.85rem; font-weight:600;">Hotspot Name (SSID):</label>
+                    <input type="text" id="wifi-ssid" placeholder="e.g. MyPhone"
+                        style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; margin-top:4px; box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label style="font-size:0.85rem; font-weight:600;">Password:</label>
+                    <input type="text" id="wifi-password" placeholder="Hotspot password"
+                        style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; margin-top:4px; box-sizing:border-box;">
+                </div>
+                <button class="btn btn-success" style="font-size:0.85rem;" onclick="saveWifiConfig()">Save WiFi
+                    Settings</button>
+                <span id="wifi-save-msg" style="font-size:0.8rem; margin-left:8px;"></span>
+            </div>
+        </div>
+
+        <div class="upload-section" id="drop-zone">
+            <p>Drag & Drop files here or</p>
+            <input type="file" id="file-input" multiple hidden name="files">
+            <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Select
+                Files</button>
+        </div>
+
+        <div id="status-msg"></div>
+
+        <div class="apk-section" id="apk-section">
+            <a href="/download-apk" class="btn btn-success" style="text-decoration: none;">📲 Download APK</a>
+        </div>
+
+        <!-- Tunnel Section -->
+        <div style="margin-bottom:20px; padding:16px; background:#f0fdf4; border-radius:8px; border:1px solid #bbf7d0;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <span style="font-weight:600; font-size:0.95rem;">🌍 Remote Access</span>
+                <button id="tunnel-btn" class="btn btn-primary" style="margin:0; padding:6px 14px; font-size:0.8rem;"
+                    onclick="toggleTunnel()">Start Tunnel</button>
+            </div>
+            <div id="tunnel-status" style="font-size:0.85rem; color:#6b7280;">Tunnel is off. Click to enable remote
+                access.</div>
+            <div id="tunnel-info" style="display:none; margin-top:10px; text-align:center;">
+                <img id="tunnel-qr" src="" alt="Tunnel QR" style="width:120px; height:120px;">
+                <p id="tunnel-url"
+                    style="font-family:monospace; font-size:0.95rem; font-weight:bold; color:#059669; margin:8px 0;">
+                </p>
+                <div style="display:flex; justify-content:center; gap:10px;">
+                    <button class="btn btn-primary" onclick="shareTunnelLink()"
+                        style="font-size:0.8rem; padding:6px 12px;">🔗 Share</button>
+                    <button class="btn" style="background:#6b7280; font-size:0.8rem; padding:6px 12px;"
+                        onclick="copyTunnelLink()">📋 Copy</button>
+                </div>
+                <p id="tunnel-password-info"
+                    style="font-size:0.8rem; color:#d97706; margin-top:12px; display:none; border-top:1px solid #e5e7eb; padding-top:8px;">
+                    ⚠️ If asked for password, enter:<br>
+                    <span id="tunnel-password" onclick="copyTunnelPassword()"
+                        style="font-weight:bold; font-family:monospace; background:#fffbeb; padding:4px 8px; border:1px solid #fcd34d; border-radius:4px; user-select:all; display:inline-block; margin-top:4px; cursor:pointer;"
+                        title="Click to copy">...</span>
+                </p>
+                <script>
+                    function copyTunnelPassword() {
+                        var pwd = document.getElementById('tunnel-password').textContent;
+                        navigator.clipboard.writeText(pwd).then(function () {
+                            var original = document.getElementById('tunnel-password').style.backgroundColor;
+                            document.getElementById('tunnel-password').style.backgroundColor = '#bef264';
+                            document.getElementById('tunnel-password').textContent = 'Copied!';
+                            setTimeout(function () {
+                                document.getElementById('tunnel-password').style.backgroundColor = original;
+                                document.getElementById('tunnel-password').textContent = pwd;
+                            }, 1000);
+                        });
+                    }
+                </script>
+            </div>
+        </div>
+
+        <h2>Shared Files</h2>
+        <ul class="file-list" id="file-list">
+            <li style="padding: 12px; color: #6b7280; text-align: center;">No files shared yet.</li>
+        </ul>
+
+        <!-- Chat Section -->
+        <div class="chat-section">
+            <div class="chat-header">💬 Chat</div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-empty">No messages yet. Start chatting!</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message or paste a link..."
+                    onkeypress="if(event.key==='Enter')sendMessage()">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const statusMsg = document.getElementById('status-msg');
+        var fileListEl = document.getElementById('file-list');
+        var chatMessages = document.getElementById('chat-messages');
+        var chatInput = document.getElementById('chat-input');
+
+        // Generate a simple user ID for this session
+        var myUserId = 'user-' + Math.random().toString(36).substr(2, 6);
+
+        // Fetch server info
+        var currentTunnelStatus = 'off';
+        function fetchServerInfo() {
+            fetch('/api/info')
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    document.getElementById('qr-code').src = data.qrCode;
+                    document.getElementById('server-url').textContent = data.url;
+
+                    if (data.wifiConfigured && data.wifiQrCode) {
+                        document.getElementById('wifi-qr-area').style.display = 'block';
+                        document.getElementById('wifi-qr-code').src = data.wifiQrCode;
+                        document.getElementById('wifi-ssid-display').textContent = '📡 ' + data.wifiSsid;
+                        document.getElementById('server-qr-label').textContent = '🌐 Step 2: Open this URL';
+                    } else {
+                        document.getElementById('wifi-qr-area').style.display = 'none';
+                        document.getElementById('server-qr-label').textContent = 'Scan to connect via Mobile';
+                    }
+
+                    // Tunnel info
+                    currentTunnelStatus = data.tunnelStatus || 'off';
+                    var tunnelBtn = document.getElementById('tunnel-btn');
+                    var tunnelStatusEl = document.getElementById('tunnel-status');
+                    var tunnelInfo = document.getElementById('tunnel-info');
+
+                    if (data.tunnelStatus === 'connected' && data.tunnelUrl) {
+                        tunnelBtn.textContent = 'Stop Tunnel';
+                        tunnelBtn.style.backgroundColor = '#ef4444';
+                        tunnelStatusEl.innerHTML = '✅ Remote access is active!';
+                        tunnelStatusEl.style.color = '#059669';
+                        tunnelInfo.style.display = 'block';
+                        if (data.tunnelQrCode) {
+                            document.getElementById('tunnel-qr').src = data.tunnelQrCode;
+                        }
+                        var urlToShow = data.tunnelShortUrl || data.tunnelUrl;
+                        document.getElementById('tunnel-url').textContent = urlToShow;
+                        document.getElementById('tunnel-url').dataset.fullUrl = urlToShow;
+
+                        if (data.tunnelPassword) {
+                            document.getElementById('tunnel-password-info').style.display = 'block';
+                            document.getElementById('tunnel-password').textContent = data.tunnelPassword;
+                        } else {
+                            document.getElementById('tunnel-password-info').style.display = 'none';
+                        }
+
+                    } else if (data.tunnelStatus === 'connecting') {
+                        tunnelBtn.textContent = 'Connecting...';
+                        tunnelBtn.disabled = true;
+                        tunnelStatusEl.textContent = '⏳ Connecting to tunnel server...';
+                        tunnelStatusEl.style.color = '#d97706';
+                        tunnelInfo.style.display = 'none';
+                    } else {
+                        tunnelBtn.textContent = 'Start Tunnel';
+                        tunnelBtn.style.backgroundColor = '#3b82f6';
+                        tunnelBtn.disabled = false;
+                        tunnelStatusEl.textContent = 'Tunnel is off. Click to enable remote access.';
+                        tunnelStatusEl.style.color = '#6b7280';
+                        tunnelInfo.style.display = 'none';
+                    }
+                })
+                .catch(function (err) { console.error("Failed to fetch info:", err); });
+        }
+        fetchServerInfo();
+        // Refresh tunnel status periodically
+        setInterval(fetchServerInfo, 5000);
+
+        function toggleTunnel() {
+            var action = currentTunnelStatus === 'connected' ? 'stop' : 'start';
+            document.getElementById('tunnel-btn').disabled = true;
+            document.getElementById('tunnel-btn').textContent = 'Please wait...';
+            fetch('/api/tunnel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: action })
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    setTimeout(fetchServerInfo, 1000);
+                })
+                .catch(function (err) {
+                    console.error('Tunnel error:', err);
+                    setTimeout(fetchServerInfo, 1000);
+                });
+        }
+        function shareTunnelLink() {
+            var url = document.getElementById('tunnel-url').dataset.fullUrl;
+            var pass = document.getElementById('tunnel-password').textContent;
+            if (!url) return;
+
+            var text = "📂 Dosya Paylaşım Linki:\n" + url + "\n\n🔑 Giriş Şifresi (IP):\n" + pass;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Local File Share',
+                    text: text
+                }).catch(console.error);
+            } else {
+                // Fallback copy
+                navigator.clipboard.writeText(text).then(() => alert('Link ve Şifre Kopyalandı!'));
+            }
+        }
+
+        function copyTunnelLink() {
+            var url = document.getElementById('tunnel-url').dataset.fullUrl;
+            if (!url) return;
+
+            var textArea = document.createElement("textarea");
+            textArea.value = url;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                var btn = event.target;
+                var originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(function () { btn.textContent = originalText; }, 2000);
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Load saved WiFi config into form
+        fetch('/api/wifi-config')
+            .then(function (res) { return res.json(); })
+            .then(function (cfg) {
+                document.getElementById('wifi-ssid').value = cfg.ssid || '';
+                document.getElementById('wifi-password').value = cfg.password || '';
+            })
+            .catch(function (err) { });
+
+        function toggleWifiConfig() {
+            var form = document.getElementById('wifi-config-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function saveWifiConfig() {
+            var ssid = document.getElementById('wifi-ssid').value.trim();
+            var password = document.getElementById('wifi-password').value;
+            fetch('/api/wifi-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ssid: ssid, password: password, security: 'WPA' })
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    document.getElementById('wifi-save-msg').textContent = '✅ Saved!';
+                    document.getElementById('wifi-save-msg').style.color = 'green';
+                    setTimeout(function () { document.getElementById('wifi-save-msg').textContent = ''; }, 2000);
+                    fetchServerInfo();
+                })
+                .catch(function (err) {
+                    document.getElementById('wifi-save-msg').textContent = '❌ Error';
+                    document.getElementById('wifi-save-msg').style.color = 'red';
+                });
+        }
+
+        // Fetch initial file list
+        fetchFiles();
+
+        // Fetch initial chat messages
+        fetchChat();
+
+        // Poll for new messages every 2 seconds
+        setInterval(fetchChat, 2000);
+        // Poll for new files every 3 seconds
+        setInterval(fetchFiles, 3000);
+
+        function fetchFiles() {
+            fetch('/api/files')
+                .then(function (res) { return res.json(); })
+                .then(function (files) {
+                    fileListEl.innerHTML = '';
+                    if (files.length === 0) {
+                        fileListEl.innerHTML = '<li style="padding: 12px; color: #6b7280; text-align: center;">No files shared yet.</li>';
+                        return;
+                    }
+                    files.forEach(function (file) {
+                        var li = document.createElement('li');
+                        li.className = 'file-item';
+                        li.innerHTML =
+                            '<span class="file-name" title="' + file.name + '">' + file.name + '</span>' +
+                            '<div class="file-actions">' +
+                            '<span style="font-size: 0.8rem; color: #9ca3af; margin-right: 10px;">' + formatSize(file.size) + '</span>' +
+                            '<button style="color: var(--primary-color);" onclick="downloadFile(\'' + encodeURIComponent(file.name) + '\')">' + 'Download</button>' +
+                            '<button onclick="deleteFile(\'' + encodeURIComponent(file.name) + '\')">' + 'Delete</button>' +
+                            '</div>';
+                        fileListEl.appendChild(li);
+                    });
+                })
+                .catch(function (err) { console.error("Failed to fetch files:", err); });
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            var k = 1024;
+            var sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            var i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function deleteFile(filename) {
+            if (!confirm('Are you sure you want to delete this file?')) return;
+            fetch('/api/files/' + filename, { method: 'DELETE' })
+                .then(function () { fetchFiles(); })
+                .catch(function (err) { alert('Failed to delete file'); });
+        }
+
+        function downloadFile(filename) {
+            window.open('/download/' + filename, '_blank');
+        }
+
+        // Chat functions
+        function fetchChat() {
+            fetch('/api/chat')
+                .then(function (res) { return res.json(); })
+                .then(function (messages) {
+                    if (messages.length === 0) {
+                        chatMessages.innerHTML = '<div class="chat-empty">No messages yet. Start chatting!</div>';
+                        return;
+                    }
+                    var html = '';
+                    messages.forEach(function (msg) {
+                        var isMine = msg.userId === myUserId;
+                        var cls = isMine ? 'mine' : 'other';
+                        var text = linkify(escapeHtml(msg.text));
+                        var time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        html += '<div class="chat-msg ' + cls + '">';
+                        if (!isMine) {
+                            html += '<div class="msg-sender">' + escapeHtml(msg.userId) + '</div>';
+                        }
+                        html += '<div>' + text + '</div>';
+                        html += '<div class="msg-time">' + time + '</div>';
+                        html += '</div>';
+                    });
+                    var wasAtBottom = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 30;
+                    chatMessages.innerHTML = html;
+                    if (wasAtBottom) {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                })
+                .catch(function (err) { console.error("Failed to fetch chat:", err); });
+        }
+
+        function sendMessage() {
+            var text = chatInput.value.trim();
+            if (!text) return;
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text, userId: myUserId })
+            })
+                .then(function () {
+                    chatInput.value = '';
+                    fetchChat();
+                })
+                .catch(function (err) { console.error("Failed to send message:", err); });
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function linkify(text) {
+            var urlPattern = /(https?:\/\/[^\s<]+)/g;
+            return text.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+        }
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', function () {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', function (e) {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+
+            var formData = new FormData();
+            for (var i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            statusMsg.textContent = 'Uploading...';
+            statusMsg.style.color = 'var(--primary-color)';
+
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('Upload failed');
+                    return res.json();
+                })
+                .then(function () {
+                    statusMsg.textContent = 'Upload successful!';
+                    statusMsg.style.color = 'green';
+                    setTimeout(function () { statusMsg.textContent = ''; }, 3000);
+                    fetchFiles();
+                })
+                .catch(function (err) {
+                    statusMsg.textContent = 'Upload failed.';
+                    statusMsg.style.color = 'red';
+                    console.error(err);
+                });
+        }
+    </script>
+
+</body>
+
+</html>

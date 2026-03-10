@@ -1,0 +1,60 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4.1"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Project",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "nodejs-mobile-cordova-native-lib::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-nodejs-mobile-cordova-native-lib-Debug-62bf209b83a7d14924d6.json",
+					"name" : "nodejs-mobile-cordova-native-lib",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/Users/yalcindegirmenci/Desktop/dosya payla\u015f/mobile-app-fixed/platforms/android/app/.cxx/Debug/365i3v2n/armeabi-v7a",
+		"source" : "/Users/yalcindegirmenci/Desktop/dosya payla\u015f/mobile-app-fixed/platforms/android/app/libs/cdvnodejsmobile"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

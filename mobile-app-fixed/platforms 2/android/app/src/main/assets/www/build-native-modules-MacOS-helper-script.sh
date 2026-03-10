@@ -1,0 +1,4 @@
+#!/bin/bash
+    export PATH=$PATH:/Users/yalcindegirmenci/.antigravity/antigravity/bin:/opt/homebrew/opt/openjdk@17/bin:/opt/homebrew/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pmk/env/global/bin:/opt/X11/bin:/Users/yalcindegirmenci/.antigravity/antigravity/bin:/opt/homebrew/opt/openjdk@17/bin:/Users/yalcindegirmenci/Library/Android/sdk/tools:/Users/yalcindegirmenci/Library/Android/sdk/platform-tools:/Users/yalcindegirmenci/.antigravity/extensions/vscjava.vscode-java-debug-0.58.5-universal/bundled/scripts/noConfigScripts:/Users/yalcindegirmenci/Library/Android/sdk/tools:/Users/yalcindegirmenci/Library/Android/sdk/platform-tools
+    npm $@
+  

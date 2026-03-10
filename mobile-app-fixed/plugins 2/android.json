@@ -1,0 +1,56 @@
+{
+  "prepare_queue": {
+    "installed": [],
+    "uninstalled": []
+  },
+  "config_munge": {
+    "files": {}
+  },
+  "installed_plugins": {
+    "cordova-plugin-device": {
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "nodejs-mobile-cordova": {
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-file": {
+      "ANDROIDX_WEBKIT_VERSION": "1.4.0",
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-file-opener2": {
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-inappbrowser": {
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-file-transfer": {
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-android-permissions": {
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-local-notification": {
+      "ANDROIDX_CORE_VERSION": "1.12.0",
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-customurlscheme": {
+      "URL_SCHEME": "localfileshare",
+      "ANDROID_SCHEME": " ",
+      "ANDROID_HOST": " ",
+      "ANDROID_PATHPREFIX": "/",
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-android-intent": {
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "phonegap-plugin-barcodescanner": {
+      "ANDROID_SUPPORT_V4_VERSION": "27.+",
+      "PACKAGE_NAME": "com.localfileshare.app"
+    },
+    "cordova-plugin-advanced-http": {
+      "ANDROIDBLACKLISTSECURESOCKETPROTOCOLS": "SSLv3,TLSv1",
+      "PACKAGE_NAME": "com.localfileshare.app"
+    }
+  },
+  "dependent_plugins": {}
+}

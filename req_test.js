@@ -1,0 +1,13 @@
+console.log('req express'); const express = require('express');
+console.log('req multer'); const multer = require('multer');
+console.log('req path'); const path = require('path');
+console.log('req fs'); const fs = require('fs');
+console.log('req qrcode'); const QRCode = require('qrcode');
+console.log('req qrcode-terminal'); const qrcodeTerminal = require('qrcode-terminal');
+console.log('req cors'); const cors = require('cors');
+console.log('req archiver'); const archiver = require('archiver');
+console.log('req localtunnel'); const localtunnel = require('localtunnel');
+console.log('req https'); const https = require('https');
+console.log('req os'); const os = require('os');
+console.log('DONE REQUIRING');
+process.exit(0);

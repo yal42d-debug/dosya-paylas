@@ -23,12 +23,12 @@ Write-Host ""
 Write-Host "$TL$hline$TR" -ForegroundColor Cyan
 Write-Host "$V                                                $V" -ForegroundColor Cyan
 Write-Host "$V" -NoNewline -ForegroundColor Cyan
-Write-Host "     S H A R E  " -NoNewline -ForegroundColor Cyan
+Write-Host "               S H A R E  " -NoNewline -ForegroundColor Cyan
 Write-Host "-  C L I" -NoNewline -ForegroundColor White
-Write-Host "                  $V" -ForegroundColor Cyan
+Write-Host "              $V" -ForegroundColor Cyan
 Write-Host "$V" -NoNewline -ForegroundColor Cyan
-Write-Host "     Hizli Baslatici v3.0 (Windows)" -NoNewline -ForegroundColor DarkGray
-Write-Host "             $V" -ForegroundColor Cyan
+Write-Host "         Hizli Baslatici v3.0 (Windows)" -NoNewline -ForegroundColor DarkGray
+Write-Host "         $V" -ForegroundColor Cyan
 Write-Host "$V                                                $V" -ForegroundColor Cyan
 Write-Host "$BL$hline$BR2" -ForegroundColor Cyan
 Write-Host ""
