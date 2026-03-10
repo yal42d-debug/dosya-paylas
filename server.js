@@ -2,13 +2,14 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const QRCode = require('qrcode');
-const qrcodeTerminal = require('qrcode-terminal');
 const cors = require('cors');
-const archiver = require('archiver');
-const localtunnel = require('localtunnel');
 const https = require('https');
 const os = require('os');
+
+// Ağır modüller lazy-load (sunucu hızlı başlasın, ihtiyaç olunca yüklensin)
+let _localtunnel, _qrcodeTerminal;
+function getLocaltunnel() { if (!_localtunnel) _localtunnel = require('localtunnel'); return _localtunnel; }
+function getQrcodeTerminal() { if (!_qrcodeTerminal) _qrcodeTerminal = require('qrcode-terminal'); return _qrcodeTerminal; }
 
 const app = express();
 const PORT = 3000;
@@ -244,7 +245,7 @@ app.post('/api/tunnel/start', async (req, res) => {
   if (currentTunnelUrl) return res.json({ message: 'Already running', url: currentTunnelUrl });
   try {
     const tunnel = await Promise.race([
-      localtunnel({ port: PORT }),
+      getLocaltunnel()({ port: PORT }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Tünel bağlantısı zaman aşımına uğradı (10s)')), 10000))
     ]);
     tunnel.on('error', (err) => {
@@ -295,7 +296,7 @@ async function startServer() {
           tunnelError = null;
           // Set a strict 5-second timeout for localtunnel connection. 
           const tunnel = await Promise.race([
-            localtunnel({ port: PORT }),
+            getLocaltunnel()({ port: PORT }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Localtunnel bağlantısında zaman aşımı (Timeout) yaşandı.')), 8000))
           ]);
 
@@ -327,17 +328,27 @@ async function startServer() {
       console.error('[X] Tünel başlatma sırasında hata:', err.message);
     });
 
-    console.log('\x1b[36m%s\x1b[0m', '===================================================');
-    console.log('\x1b[32m%s\x1b[0m', '[>>] DOSYA PAYLAŞIM SUNUCUSU AKTİF');
-    console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
-    console.log(`[/] Klasör: ${UPLOAD_DIR}`);
-    console.log(`[=] Yerel Ağ: ${serverUrl}`);
-    console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
+    const R = '\x1b[0m', B = '\x1b[1m';
+    const C = '\x1b[36m', GR = '\x1b[90m';
+    const BG = '\x1b[92m', BY = '\x1b[93m';
+    const h = '\u2550', v = '\u2551', tl = '\u2554', tr = '\u2557', bl = '\u255A', br = '\u255D', ml = '\u2560', mr = '\u2563';
+    const sw = 50;
+    const dot = '\u00B7';
 
-    console.log('\n\x1b[33m%s\x1b[0m', '[#] YEREL AĞ QR KODU (Ev/Ofis İçi):');
-    qrcodeTerminal.generate(serverUrl, { small: true });
+    console.log(`${C}${tl}${h.repeat(sw-2)}${tr}${R}`);
+    console.log(`${C}${v}${R}                                                ${C}${v}${R}`);
+    console.log(`${C}${v}${R}     ${B}${BG}DOSYA PAYLASIM SUNUCUSU AKTIF${R}     ${C}${v}${R}`);
+    console.log(`${C}${v}${R}                                                ${C}${v}${R}`);
+    console.log(`${C}${ml}${h.repeat(sw-2)}${mr}${R}`);
+    console.log(`${C}${v}${R}  ${BY}Klasor ${GR}${dot}${dot}${R} ${UPLOAD_DIR}${' '.repeat(Math.max(0, sw - 14 - UPLOAD_DIR.length))}${C}${v}${R}`);
+    console.log(`${C}${v}${R}  ${BY}Yerel  ${GR}${dot}${dot}${R} ${serverUrl}${' '.repeat(Math.max(0, sw - 14 - serverUrl.length))}${C}${v}${R}`);
+    console.log(`${C}${bl}${h.repeat(sw-2)}${br}${R}`);
 
-    console.log('\n\x1b[36m%s\x1b[0m', '---------------------------------------------------\n');
+    console.log(`\n  ${B}${BY}YEREL AG QR KODU${R} ${GR}(Ev/Ofis Ici)${R}`);
+    console.log(`  ${GR}${'\u2500'.repeat(sw-4)}${R}`);
+    getQrcodeTerminal().generate(serverUrl, { small: true });
+
+    console.log('');
   });
 }
 

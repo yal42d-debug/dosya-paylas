@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dosya Paylaşım Merkezi</title>
+
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --secondary-text: #a0a0a0;
+            --primary-color: #3b82f6;
+            /* Blue */
+            --primary-hover: #2563eb;
+            --danger-color: #ef4444;
+            --border-color: #333;
+            --success-color: #10b981;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            padding: 24px;
+            position: relative;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--secondary-text);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        /* Remote Control Section */
+        .tunnel-control {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tunnel-status {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #666;
+        }
+
+        .status-dot.active {
+            background-color: var(--success-color);
+            box-shadow: 0 0 8px var(--success-color);
+        }
+
+        .switch-btn {
+            background-color: var(--card-bg);
+            /* Default OFF state */
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .switch-btn.active {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        /* Upload Section */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            color: var(--secondary-text);
+            font-size: 0.9rem;
+        }
+
+        /* File List */
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .file-icon {
+            color: var(--secondary-text);
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .file-name-wrapper {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .file-name {
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 0.75rem;
+            color: var(--secondary-text);
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary-text);
+            padding: 6px;
+            border-radius: 6px;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .delete-btn:hover {
+            color: var(--danger-color);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Modal & Tabs */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px;
+            color: var(--secondary-text);
+            cursor: pointer;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .wifi-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .wifi-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            outline: none;
+        }
+
+        .generate-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none;
+        }
+
+        /* Toast Container */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .dl-toast {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .dl-toast-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .dl-toast-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80%;
+        }
+
+        .dl-toast-progress-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .dl-toast-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.2s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <div class="container">
+        <header>
+            <h1>
+                <!-- File Icon -->
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+                Dosya Paylaş
+            </h1>
+            <div style="display: flex; gap: 8px;">
+                <button class="icon-btn hidden" id="local-btn" onclick="resetToLocal()"
+                    title="Yerel Dosyalar (Telefona Dön)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="startQrScan()" title="QR Oku">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                        </path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="openQrModal()" title="QR Menüsü">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="openDownloadsModal()" title="İndirilenler">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        <line x1="12" y1="11" x2="12" y2="17"></line>
+                        <polyline points="9 14 12 17 15 14"></polyline>
+                    </svg>
+                </button>
+
+            </div>
+        </header>
+
+        <!-- Server & Connection Status Panel -->
+        <div class="tunnel-control" style="flex-direction: column; gap: 12px;">
+            <!-- Row 1: Server Status -->
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="tunnel-status">
+                    <div class="status-dot" id="server-dot"></div>
+                    <span id="server-status-text">Sunucu Başlatılıyor...</span>
+                </div>
+                <span id="server-ip-text" style="font-size: 0.75rem; color: var(--secondary-text);"></span>
+            </div>
+            <!-- Row 2: Connection Mode -->
+            <div id="connection-mode-row"
+                style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div class="tunnel-status">
+                    <div class="status-dot" id="status-dot"></div>
+                    <span id="status-text">Yerel Mod</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button class="switch-btn" id="connect-btn" onclick="openConnectModal()"
+                        style="font-size: 0.75rem; padding: 6px 12px;">IP ile Bağlan</button>
+                    <button class="switch-btn" id="tunnel-btn" onclick="toggleTunnel()">Dışarı Aç</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual IP Connect Modal -->
+        <div class="modal" id="connect-modal">
+            <div class="modal-content">
+                <h3 style="margin-top: 0; color: var(--primary-color);">Sunucuya Bağlan</h3>
+                <p style="font-size: 0.8rem; color: var(--secondary-text);">Başka bir cihazın IP adresini girerek
+                    dosyalarına erişin</p>
+                <div class="wifi-form">
+                    <input type="text" id="connect-ip-input" class="wifi-input" placeholder="Örn: 192.168.1.42:3000">
+                    <button class="generate-btn" onclick="connectToIp()">Bağlan</button>
+                </div>
+                <button class="modal-close" style="width: 100%; margin-top: 12px;"
+                    onclick="closeConnectModal()">İptal</button>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <h3 style="font-size: 1rem; color: var(--secondary-text); margin: 24px 0 12px 0;">Mesajlaşma</h3>
+        <div class="chat-container"
+            style="border: 1px solid var(--border-color); border-radius: 12px; height: 200px; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 24px;">
+            <div id="chat-messages"
+                style="flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+            </div>
+            <div style="display: flex; border-top: 1px solid var(--border-color); padding: 8px;">
+                <input type="text" id="chat-input" placeholder="Mesaj..."
+                    style="flex: 1; background: transparent; border: none; color: white; padding: 8px; outline: none;">
+                <button onclick="sendMessage()"
+                    style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Gönder</button>
+            </div>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <input type="file" id="file-input" multiple hidden>
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <div class="upload-text">Dosya Yükle</div>
+        </div>
+
+        <h3 style="font-size: 1rem; color: var(--secondary-text); margin-bottom: 12px;">Dosyalar</h3>
+        <ul class="file-list" id="file-list">
+            <!-- JS will populate this -->
+        </ul>
+    </div>
+
+    <!-- Multi-Tab QR Modal -->
+    <div class="modal" id="qr-modal">
+        <div class="modal-content">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('local')">Lokal</button>
+                <button class="tab-btn" onclick="switchTab('wifi')">Wi-Fi</button>
+                <button class="tab-btn" onclick="switchTab('remote')">Uzaktan</button>
+            </div>
+
+            <!-- Local Tab -->
+            <div id="tab-local" class="tab-content active">
+                <img id="qr-local-img" src="" alt="Local QR" style="width: 200px; height: 200px; border-radius: 8px;">
+                <p style="color: var(--secondary-text); margin-top: 10px; font-size: 0.85rem;">Aynı Wi-Fi ağındakiler
+                    için</p>
+                <div id="local-info-box"
+                    style="margin-top: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; text-align: left;">
+                    <p
+                        style="color: var(--secondary-text); font-size: 0.75rem; margin: 0 0 6px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        📡 Bağlantı Bilgileri</p>
+                    <p style="color: var(--primary-color); font-size: 0.85rem; margin: 4px 0; word-break: break-all;"
+                        id="local-url-text">Yükleniyor...</p>
+                    <div style="display: flex; gap: 16px; margin-top: 6px;">
+                        <span style="color: var(--text-color); font-size: 0.8rem;">🏠 IP: <strong
+                                id="local-ip-text">-</strong></span>
+                        <span style="color: var(--text-color); font-size: 0.8rem;">🔌 Port: <strong
+                                id="local-port-text">-</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wi-Fi Tab -->
+            <div id="tab-wifi" class="tab-content">
+                <div class="wifi-form">
+                    <input type="text" id="wifi-ssid" class="wifi-input" placeholder="Wi-Fi Adı (SSID)">
+                    <input type="password" id="wifi-pass" class="wifi-input" placeholder="Wi-Fi Şifresi">
+                    <button class="generate-btn" onclick="generateWifiQr()">Wi-Fi QR Oluştur</button>
+                </div>
+                <img id="qr-wifi-img" src=""
+                    style="width: 200px; height: 200px; border-radius: 8px; display: none; margin-top: 12px; margin-left:auto; margin-right:auto;">
+            </div>
+
+            <!-- Remote Tab -->
+            <div id="tab-remote" class="tab-content">
+                <div class="wifi-form">
+                    <input type="text" id="remote-url-input" class="wifi-input"
+                        placeholder="Tünel URL'si yapıştır (cloudflared vb.)">
+                    <button class="generate-btn" onclick="setRemoteUrl()">Uzaktan QR Oluştur</button>
+                </div>
+                <div id="remote-qr-container" style="display: none; margin-top: 12px;">
+                    <img id="qr-remote-img" src="" alt="Remote QR"
+                        style="width: 200px; height: 200px; border-radius: 8px;">
+                    <p style="color: var(--secondary-text); margin-top: 10px; font-size: 0.85rem;">İnternet üzerinden
+                        erişim için</p>
+                    <p id="remote-url-text"
+                        style="word-break: break-all; color: var(--primary-color); font-size: 0.8rem; margin-top: 5px;">
+                    </p>
+                    <p id="remote-password-text"
+                        style="word-break: break-all; color: var(--success-color); font-size: 0.9rem; font-weight: bold; margin-top: 8px; display: none;">
+                    </p>
+                </div>
+                <div id="remote-placeholder" style="padding: 10px; color: var(--secondary-text); font-size: 0.8rem;">
+                    <p>PC'de şu komutu çalıştırın:</p>
+                    <p
+                        style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 0.75rem; margin: 8px 0;">
+                        cloudflared tunnel --url http://TELEFON_IP:3000</p>
+                    <p>Çıkan URL'yi yukarıya yapıştırın.</p>
+                </div>
+            </div>
+
+
+
+            <button class="modal-close" style="margin-top: 20px;" onclick="closeQrModal()">Kapat</button>
+        </div>
+    </div>
+
+    <!-- Downloads Modal -->
+    <div class="modal" id="downloads-modal">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <h3 style="margin-top: 0; color: var(--primary-color);">İndirilen Dosyalar</h3>
+            <p style="font-size: 0.8rem; color: var(--secondary-text);">Telefona indirilen dosyalarınız:</p>
+            <ul class="file-list" id="downloads-list" style="margin-top: 15px; text-align: left;">
+                <!-- Populated via JS -->
+            </ul>
+            <button class="modal-close" style="width: 100%; margin-top: 20px;"
+                onclick="closeDownloadsModal()">Kapat</button>
+        </div>
+    </div>
+
+    <script>
+        const fileListEl = document.getElementById('file-list');
+        const tunnelBtn = document.getElementById('tunnel-btn');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const serverDot = document.getElementById('server-dot');
+        const serverStatusText = document.getElementById('server-status-text');
+        const serverIpText = document.getElementById('server-ip-text');
+
+        // State
+        let isTunnelRunning = false;
+        let tunnelUrl = null;
+        let localQrData = null;
+        let isServerReady = false;
+        let isRemoteMode = false; // true when connected to another device
+        let serverLocalIp = '';
+        let appIntervals = []; // track intervals for cleanup
+
+        // Init
+        function startApp() {
+            console.log("Starting App UI...");
+            // Clear previous intervals to avoid duplicates
+            appIntervals.forEach(id => clearInterval(id));
+            appIntervals = [];
+
+            fetchFiles();
+            fetchInfo();
+            fetchMessages();
+
+            // Only check tunnel if we're on our own server
+            if (!isRemoteMode) {
+                checkTunnelStatus();
+                appIntervals.push(setInterval(checkTunnelStatus, 5000));
+            }
+            appIntervals.push(setInterval(fetchMessages, 2000));
+            appIntervals.push(setInterval(fetchFiles, 3000));
+
+            updateConnectionModeUI();
+        }
+
+        // --- Server Status ---
+        function setServerReady(ip) {
+            isServerReady = true;
+            serverLocalIp = ip || '';
+            serverDot.classList.add('active');
+            serverStatusText.textContent = 'Sunucu Çalışıyor';
+            serverIpText.textContent = serverLocalIp ? serverLocalIp + ':3000' : '';
+        }
+
+        function setServerError(msg) {
+            isServerReady = false;
+            serverDot.classList.remove('active');
+            serverDot.style.backgroundColor = 'var(--danger-color)';
+            serverStatusText.textContent = msg || 'Sunucu Hatası';
+        }
+
+        // --- Connection Mode ---
+        function updateConnectionModeUI() {
+            const tunnelBtnEl = document.getElementById('tunnel-btn');
+            const connectBtn = document.getElementById('connect-btn');
+            const localBtn = document.getElementById('local-btn');
+
+            if (isRemoteMode) {
+                // Connected to another server
+                statusDot.classList.add('active');
+                statusDot.style.backgroundColor = '#f59e0b'; // amber
+                statusDot.style.boxShadow = '0 0 8px #f59e0b';
+                statusText.textContent = 'Uzak: ' + BASE_URL.replace('http://', '');
+                tunnelBtnEl.style.display = 'none'; // hide tunnel controls
+                connectBtn.textContent = 'Bağlantıyı Kes';
+                connectBtn.style.backgroundColor = 'var(--danger-color)';
+                connectBtn.style.borderColor = 'var(--danger-color)';
+                connectBtn.style.color = 'white';
+                connectBtn.onclick = function () { resetToLocal(); };
+                localBtn.classList.remove('hidden');
+            } else {
+                // Local mode  
+                statusDot.style.backgroundColor = '';
+                statusDot.style.boxShadow = '';
+                tunnelBtnEl.style.display = '';
+                connectBtn.textContent = 'IP ile Bağlan';
+                connectBtn.style.backgroundColor = '';
+                connectBtn.style.borderColor = '';
+                connectBtn.style.color = '';
+                connectBtn.onclick = function () { openConnectModal(); };
+                localBtn.classList.add('hidden');
+                // Tunnel status will set the dot
+                checkTunnelStatus();
+            }
+        }
+
+        // --- IP Connect Modal ---
+        function openConnectModal() {
+            document.getElementById('connect-modal').classList.add('open');
+            document.getElementById('connect-ip-input').focus();
+        }
+
+        function closeConnectModal() {
+            document.getElementById('connect-modal').classList.remove('open');
+        }
+
+        function connectToIp() {
+            let ipVal = document.getElementById('connect-ip-input').value.trim();
+            if (!ipVal) return alert('Lütfen bir IP adresi girin.');
+
+            // Add http:// if missing
+            if (!ipVal.startsWith('http')) ipVal = 'http://' + ipVal;
+            // Add port if missing
+            if (ipVal.split(':').length < 3) ipVal += ':3000';
+
+            const targetUrl = ipVal.endsWith('/') ? ipVal.slice(0, -1) : ipVal;
+            const btn = event.currentTarget;
+            btn.textContent = 'Bağlanıyor...';
+            btn.disabled = true;
+
+            // Use original fetch to bypass BASE_URL override
+            const testFetch = window._originalFetch || window.fetch;
+            testFetch(targetUrl + '/api/info', {
+                headers: { 'Bypass-Tunnel-Reminder': 'true' }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Server unreachable');
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.ip || data.url) {
+                        BASE_URL = targetUrl;
+                        isRemoteMode = true;
+                        closeConnectModal();
+                        startApp();
+                        alert('Bağlantı başarılı! ' + targetUrl);
+                    } else {
+                        alert('Bu adres bir Dosya Paylaş sunucusu değil.');
+                    }
+                })
+                .catch(err => {
+                    alert('Sunucuya bağlanılamadı.\nCihazların aynı ağda olduğundan emin olun.\n\nHata: ' + err.message);
+                })
+                .finally(() => {
+                    btn.textContent = 'Bağlan';
+                    btn.disabled = false;
+                });
+        }
+
+        // --- Tabs Logic ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'remote') {
+                updateRemoteTabUI();
+            }
+        }
+
+        function updateRemoteTabUI() {
+            const container = document.getElementById('remote-qr-container');
+            const placeholder = document.getElementById('remote-placeholder');
+
+            // Show real IP in the placeholder command
+            if (serverLocalIp) {
+                const cmdEl = placeholder.querySelector('p[style*="monospace"]');
+                if (cmdEl) cmdEl.textContent = 'cloudflared tunnel --url http://' + serverLocalIp + ':3000';
+            }
+
+            if (isTunnelRunning && tunnelUrl) {
+                container.style.display = 'block';
+                placeholder.style.display = 'none';
+                document.getElementById('remote-url-text').textContent = tunnelUrl;
+                document.getElementById('remote-url-input').value = tunnelUrl;
+                generateQr(tunnelUrl, 'qr-remote-img');
+
+                // If using loca.lt, fetch the password
+                const pwdEl = document.getElementById('remote-password-text');
+                if (tunnelUrl.includes('.loca.lt')) {
+                    fetch('/api/tunnel/password')
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.password) {
+                                pwdEl.textContent = 'Tünel Şifresi: ' + data.password;
+                                pwdEl.style.display = 'block';
+                            } else {
+                                pwdEl.style.display = 'none';
+                            }
+                        })
+                        .catch(() => pwdEl.style.display = 'none');
+                } else {
+                    pwdEl.style.display = 'none';
+                }
+            } else {
+                container.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
+        }
+
+        function setRemoteUrl() {
+            const url = document.getElementById('remote-url-input').value.trim();
+            if (!url) return alert('Lütfen bir URL girin.');
+
+            fetch('/api/tunnel/set-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    tunnelUrl = url;
+                    isTunnelRunning = true;
+                    updateRemoteTabUI();
+                    updateTunnelUI(true, url);
+                })
+                .catch(err => alert('URL kaydedilemedi'));
+        }
+
+        function generateWifiQr() {
+            const ssid = document.getElementById('wifi-ssid').value.trim();
+            const pass = document.getElementById('wifi-pass').value.trim();
+            if (!ssid) return alert("Lütfen Wi-Fi adını girin.");
+            const wifiStr = `WIFI:T:WPA;S:${ssid};P:${pass};;`;
+            generateQr(wifiStr, 'qr-wifi-img');
+            document.getElementById('qr-wifi-img').style.display = 'block';
+        }
+
+        function generateQr(text, imgId) {
+            fetch('/api/qr/custom', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const img = document.getElementById(imgId);
+                    if (img) img.src = data.qrCode;
+                })
+                .catch(err => console.error("QR Fail", err));
+        }
+
+        // --- Core Functions ---
+
+        function fetchInfo() {
+            fetch('/api/info')
+                .then(res => res.json())
+                .then(data => {
+                    const localUrl = data.url || data.localUrl;
+
+                    if (data.qrCode) {
+                        localQrData = data.qrCode;
+                        document.getElementById('qr-local-img').src = localQrData;
+                    } else if (localUrl) {
+                        generateQr(localUrl, 'qr-local-img');
+                    }
+
+                    // Lokal QR altına bağlantı bilgilerini yaz
+                    if (localUrl) {
+                        document.getElementById('local-url-text').textContent = localUrl;
+                    }
+                    if (data.ip) {
+                        document.getElementById('local-ip-text').textContent = data.ip;
+                    }
+                    if (data.port) {
+                        document.getElementById('local-port-text').textContent = data.port;
+                    }
+
+                    // Update server status with real IP
+                    if (data.ip && !isRemoteMode) {
+                        setServerReady(data.ip);
+                    }
+                })
+                .catch(err => {
+                    if (!isRemoteMode) {
+                        serverStatusText.textContent = 'Sunucu Yanıt Vermiyor...';
+                    }
+                });
+        }
+
+        function checkTunnelStatus() {
+            if (isRemoteMode) return; // Don't check tunnel on remote server
+            fetch('/api/tunnel/status')
+                .then(res => res.json())
+                .then(data => {
+                    isTunnelRunning = data.running;
+                    tunnelUrl = data.url;
+                    updateTunnelUI(data.running, data.url);
+                    if (document.getElementById('tab-remote').classList.contains('active')) {
+                        updateRemoteTabUI();
+                    }
+                })
+                .catch(console.error);
+        }
+
+        function updateTunnelUI(running, url) {
+            if (isRemoteMode) return; // Skip when connected to remote
+            if (running) {
+                statusDot.classList.add('active');
+                statusText.textContent = "Dış Erişim Açık";
+                tunnelBtn.textContent = "Kapat";
+                tunnelBtn.classList.add('active');
+            } else {
+                statusDot.classList.remove('active');
+                statusText.textContent = "Yerel Mod";
+                tunnelBtn.textContent = "Dışarı Aç";
+                tunnelBtn.classList.remove('active');
+            }
+        }
+
+        function toggleTunnel() {
+            tunnelBtn.disabled = true;
+            tunnelBtn.style.opacity = "0.7";
+            const endpoint = isTunnelRunning ? '/api/tunnel/stop' : '/api/tunnel/start';
+            fetch(endpoint, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) alert('Tünel Hatası: ' + data.error);
+                    setTimeout(checkTunnelStatus, 1000);
+                })
+                .catch(err => alert('İşlem başarısız: ' + err.message))
+                .finally(() => {
+                    tunnelBtn.disabled = false;
+                    tunnelBtn.style.opacity = "1";
+                });
+        }
+
+        function openQrModal() {
+            document.getElementById('qr-modal').classList.add('open');
+        }
+
+        function closeQrModal() {
+            document.getElementById('qr-modal').classList.remove('open');
+        }
+
+        function fetchFiles() {
+            fetch('/api/files')
+                .then(res => res.json())
+                .then(files => {
+                    fileListEl.innerHTML = '';
+                    if (files.length === 0) {
+                        fileListEl.innerHTML = '<li style="padding: 20px; text-align: center; color: var(--secondary-text);">Henüz dosya yok.</li>';
+                        return;
+                    }
+                    files.forEach(file => {
+                        const li = document.createElement('li');
+                        li.className = 'file-item';
+                        li.innerHTML = `
+                            <div class="file-info">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                                <div class="file-name-wrapper">
+                                    <span class="file-name" title="${file.name}">${file.name}</span>
+                                    <span class="file-size">${formatSize(file.size)}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="action-btn" onclick="downloadFile('${encodeURIComponent(file.name)}')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                </button>
+                                <button class="action-btn delete-btn" onclick="deleteFile('${encodeURIComponent(file.name)}')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </div>
+                        `;
+                        fileListEl.appendChild(li);
+                    });
+                });
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function deleteFile(filename) {
+            if (!confirm('Silmek istediğinize emin misiniz?')) return;
+            fetch(`/api/files/${filename}`, { method: 'DELETE' })
+                .then(() => fetchFiles());
+        }
+
+        // Drop Zone
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--primary-color)';
+            dropZone.style.background = 'rgba(59, 130, 246, 0.05)';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = 'var(--border-color)';
+            dropZone.style.background = 'none';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--border-color)';
+            dropZone.style.background = 'none';
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            if (!files.length) return;
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) formData.append('files', files[i]);
+
+            const originalText = document.querySelector('.upload-text').textContent;
+            document.querySelector('.upload-text').textContent = 'Yükleniyor...';
+
+            fetch('/api/upload', { method: 'POST', body: formData })
+                .then(() => {
+                    fetchFiles();
+                    document.querySelector('.upload-text').textContent = 'Yüklendi!';
+                    setTimeout(() => {
+                        document.querySelector('.upload-text').textContent = originalText;
+                    }, 2000);
+                })
+                .catch(() => alert('Yükleme başarısız'));
+        }
+
+        // Chat Logic
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+
+        // Create a user ID if not exists
+        let myId = localStorage.getItem('myChatId');
+        if (!myId) {
+            myId = 'guest-' + Math.floor(Math.random() * 10000);
+            localStorage.setItem('myChatId', myId);
+        }
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sender: myId, text: text })
+            })
+                .then(res => res.json())
+                .then(() => {
+                    chatInput.value = '';
+                    fetchMessages();
+                });
+        }
+
+        function fetchMessages() {
+            fetch('/api/chat')
+                .then(res => res.json())
+                .then(msgs => {
+                    chatMessages.innerHTML = '';
+                    if (msgs.length === 0) {
+                        chatMessages.innerHTML = '<div style="color:var(--secondary-text); text-align:center; font-size:0.8rem; margin-top:20px;">Henüz mesaj yok.</div>';
+                    }
+                    msgs.forEach(msg => {
+                        const div = document.createElement('div');
+                        const isMe = msg.sender === myId;
+                        div.style.cssText = `
+                            padding: 8px 12px; 
+                            border-radius: 8px; 
+                            max-width: 80%; 
+                            align-self: ${isMe ? 'flex-end' : 'flex-start'};
+                            background: ${isMe ? 'var(--primary-color)' : '#333'};
+                            color: white;
+                            font-size: 0.9rem;
+                            margin-bottom: 4px;
+                        `;
+                        // Simple sender name logic
+                        const senderName = isMe ? 'Ben' : msg.sender.split('-')[1] || 'Guest';
+                        div.innerHTML = `<div style="font-size:0.7rem; opacity:0.7; margin-bottom:2px;">${senderName}</div>${msg.text}`;
+                        chatMessages.appendChild(div);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+        }
+
+
+        // Download and App State Logic
+        let BASE_URL = "http://localhost:3000";
+        const activeDownloads = {};
+
+        function getSafeId(filename) {
+            return 'toast-' + encodeURIComponent(filename).replace(/[^a-zA-Z0-9]/g, '');
+        }
+
+        function showToast(filename) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const safeId = getSafeId(filename);
+
+            if (document.getElementById(safeId)) return safeId;
+
+            const div = document.createElement('div');
+            div.className = 'dl-toast';
+            div.id = safeId;
+            div.innerHTML = `
+                <div class="dl-toast-header">
+                    <span class="dl-toast-name" title="${filename}">${filename}</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="${safeId}-perc">0%</span>
+                        <span onclick="cancelDownload('${encodeURIComponent(filename)}')" style="cursor:pointer; color:#ef4444; font-weight:bold; font-size:1.2rem; line-height:1;" title="İptal Et">&times;</span>
+                    </div>
+                </div>
+                <div class="dl-toast-progress-bg">
+                    <div id="${safeId}-bar" class="dl-toast-progress-bar"></div>
+                </div>
+            `;
+            container.appendChild(div);
+            return safeId;
+        }
+
+        function cancelDownload(encodedFilename) {
+            const decodedName = decodeURIComponent(encodedFilename);
+            if (activeDownloads[decodedName] && activeDownloads[decodedName].ft) {
+                activeDownloads[decodedName].ft.abort();
+            }
+            hideToast(decodedName);
+            delete activeDownloads[decodedName];
+            if (document.getElementById('downloads-modal').classList.contains('open')) {
+                loadDownloadedFiles();
+            }
+        }
+
+        function updateToast(filename, perc) {
+            const safeId = getSafeId(filename);
+            const percEl = document.getElementById(safeId + '-perc');
+            const barEl = document.getElementById(safeId + '-bar');
+            if (percEl) percEl.textContent = perc + '%';
+            if (barEl) barEl.style.width = perc + '%';
+        }
+
+        function hideToast(filename) {
+            const safeId = getSafeId(filename);
+            const el = document.getElementById(safeId);
+            if (el) {
+                setTimeout(() => el.remove(), 1000);
+            }
+        }
+
+        function resetToLocal() {
+            BASE_URL = "http://localhost:3000";
+            isRemoteMode = false;
+            document.getElementById('local-btn').classList.add('hidden');
+            startApp();
+        }
+
+        function getDownloadDir() {
+            if (cordova.file.externalRootDirectory) return cordova.file.externalRootDirectory + 'Download/';
+            if (cordova.file.externalDataDirectory) return cordova.file.externalDataDirectory;
+            return cordova.file.dataDirectory;
+        }
+
+        function downloadFile(filename) {
+            const decodedName = decodeURIComponent(filename);
+            const url = BASE_URL + '/download/' + filename;
+            if (window.cordova && window.FileTransfer) {
+                const permissions = cordova.plugins.permissions;
+                permissions.checkPermission(permissions.WRITE_EXTERNAL_STORAGE, function (status) {
+                    if (status.hasPermission) {
+                        startDownload(url, decodedName);
+                    } else {
+                        permissions.requestPermission(permissions.WRITE_EXTERNAL_STORAGE, function (status) {
+                            // On Android 13+, status.hasPermission might be false for WRITE_EXTERNAL_STORAGE 
+                            // even though we can write to public Download folder. 
+                            // So we just try to download anyway.
+                            startDownload(url, decodedName);
+                        }, function () {
+                            // Fallback, just try to download
+                            startDownload(url, decodedName);
+                        });
+                    }
+                });
+            } else {
+                window.location.href = url;
+            }
+        }
+
+        function startDownload(url, decodedName) {
+            const targetPath = getDownloadDir() + decodedName;
+
+            window.resolveLocalFileSystemURL(targetPath, function (fileEntry) {
+                // Dosya zaten var
+                if (confirm("Bu klasörde '" + decodedName + "' adına sahip bir dosya zaten var. Yine de indirmek istiyor musunuz? (İsminin sonuna numara eklenecektir)")) {
+                    let ext = '';
+                    let nameTitle = decodedName;
+                    const lastDot = decodedName.lastIndexOf('.');
+                    if (lastDot > 0) {
+                        ext = decodedName.substring(lastDot);
+                        nameTitle = decodedName.substring(0, lastDot);
+                    }
+                    let counter = 1;
+                    function tryDownloadNext() {
+                        const newName = nameTitle + ' (' + counter + ')' + ext;
+                        const newPath = getDownloadDir() + newName;
+                        window.resolveLocalFileSystemURL(newPath, function () {
+                            // Var, artır
+                            counter++;
+                            tryDownloadNext();
+                        }, function () {
+                            // Yok, indir
+                            doActualDownload(url, newName, newPath);
+                        });
+                    }
+                    tryDownloadNext();
+                }
+            }, function () {
+                // Dosya yok, normal indir
+                doActualDownload(url, decodedName, targetPath);
+            });
+        }
+
+        function doActualDownload(url, displayFileName, targetPath) {
+            const ft = new FileTransfer();
+            const options = { headers: { "Bypass-Tunnel-Reminder": "true" } };
+
+            showToast(displayFileName);
+            activeDownloads[displayFileName] = { progress: 0, ft: ft };
+
+            ft.onprogress = function (pe) {
+                if (pe.lengthComputable) {
+                    const perc = Math.floor((pe.loaded / pe.total) * 100);
+                    if (activeDownloads[displayFileName]) {
+                        activeDownloads[displayFileName].progress = perc;
+                    }
+                    updateToast(displayFileName, perc);
+                    const dlItemPerc = document.getElementById('dl-perc-' + getSafeId(displayFileName));
+                    if (dlItemPerc) dlItemPerc.textContent = '% ' + perc;
+                }
+            };
+
+            ft.download(
+                url,
+                targetPath,
+                function (entry) {
+                    delete activeDownloads[displayFileName];
+                    hideToast(displayFileName);
+
+                    // Android 11+ Public Folder okuma hatasını aşmak için listeyi local'e de kaydediyoruz
+                    let saved = JSON.parse(localStorage.getItem('my_downloads') || '[]');
+                    saved = saved.filter(f => f.name !== entry.name);
+                    saved.push({ name: entry.name, nativeURL: entry.nativeURL });
+                    localStorage.setItem('my_downloads', JSON.stringify(saved));
+
+                    if (document.getElementById('downloads-modal').classList.contains('open')) {
+                        loadDownloadedFiles();
+                    }
+                    try {
+                        if (cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
+                            cordova.plugins.notification.local.schedule({
+                                title: 'İndirme Tamamlandı',
+                                text: displayFileName + ' başarıyla indirildi.',
+                                foreground: true
+                            });
+                        } else {
+                            alert("İndirme Tamamlandı:\n" + displayFileName);
+                        }
+                    } catch (e) { }
+                },
+                function (error) {
+                    delete activeDownloads[displayFileName];
+                    hideToast(displayFileName);
+                    if (document.getElementById('downloads-modal').classList.contains('open')) {
+                        loadDownloadedFiles();
+                    }
+                    if (error.code !== 4) { // 4 = ABORT_ERR
+                        alert("İndirme hatası: " + error.code);
+                    }
+                },
+                true,
+                options
+            );
+        }
+
+
+
+        // --- Downloads Folder UI ---
+        function openDownloadsModal() {
+            if (!window.cordova) return alert("Bu özellik sadece mobil uygulamada çalışır. PC'de tarayıcı indirmelerini kontrol edin.");
+            document.getElementById('downloads-modal').classList.add('open');
+            loadDownloadedFiles();
+        }
+
+        function closeDownloadsModal() {
+            document.getElementById('downloads-modal').classList.remove('open');
+        }
+
+        function loadDownloadedFiles() {
+            const dlList = document.getElementById('downloads-list');
+            dlList.innerHTML = '<li style="text-align:center; padding: 10px; color: var(--secondary-text);">Yükleniyor...</li>';
+
+            if (window.cordova && cordova.plugins.permissions) {
+                const permissions = cordova.plugins.permissions;
+                permissions.checkPermission(permissions.READ_EXTERNAL_STORAGE, function (status) {
+                    if (status.hasPermission) {
+                        doLoadDownloadedFiles(dlList);
+                    } else {
+                        permissions.requestPermission(permissions.READ_EXTERNAL_STORAGE, function (status) {
+                            // On Android 13+, it might be false, but try anyway
+                            doLoadDownloadedFiles(dlList);
+                        }, function () {
+                            doLoadDownloadedFiles(dlList);
+                        });
+                    }
+                });
+            } else {
+                doLoadDownloadedFiles(dlList);
+            }
+        }
+
+        function doLoadDownloadedFiles(dlList) {
+            dlList.innerHTML = '';
+            let saved = JSON.parse(localStorage.getItem('my_downloads') || '[]');
+            const activeKeys = Object.keys(activeDownloads);
+
+            // Aktif inenleri de listeye ekle
+            activeKeys.forEach(name => {
+                if (!saved.find(f => f.name === name)) {
+                    saved.push({ name: name, nativeURL: '', isDownloading: true });
+                }
+            });
+
+            if (saved.length === 0) {
+                dlList.innerHTML = '<li style="text-align:center; padding: 10px; color: var(--secondary-text);">İndirilen dosya yok.</li>';
+                return;
+            }
+
+            saved.forEach(function (file) {
+                const isDownloading = activeDownloads[file.name] !== undefined || file.isDownloading;
+                const percId = 'dl-perc-' + getSafeId(file.name);
+                const progressText = isDownloading ? `<span style="color: var(--primary-color); font-size: 0.75rem;"><strong id="${percId}">% ${activeDownloads[file.name] ? activeDownloads[file.name].progress : 0}</strong> İniyor...</span>` : '';
+
+                const actionButtons = isDownloading
+                    ? `<span style="font-size: 0.8rem; color: var(--secondary-text);">İndiriliyor</span>
+                       <button class="action-btn delete-btn" onclick="cancelDownload('${encodeURIComponent(file.name)}')" title="İptal Et" style="padding:4px; margin-left:8px;">
+                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                       </button>`
+                    : `
+                        <button class="action-btn" onclick="openOfflineFile('${file.nativeURL}')" style="color: var(--success-color);">
+                            Aç
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteOfflineFile('${file.name}', '${file.nativeURL}')">
+                            Sil
+                        </button>
+                    `;
+
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <div class="file-info" style="flex: 1; overflow: hidden; padding-right: 10px; flex-direction: column; align-items: flex-start; gap: 4px;">
+                        <span class="file-name" style="word-break: break-all; width: 100%; white-space: normal;">${file.name}</span>
+                        ${progressText}
+                    </div>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        ${actionButtons}
+                    </div>
+                `;
+                dlList.appendChild(li);
+            });
+        }
+
+        function openOfflineFile(fileUrl) {
+            const ext = fileUrl.split('.').pop().toLowerCase();
+            let mimeType = '*/*';
+
+            const mimeTypes = {
+                'apk': 'application/vnd.android.package-archive',
+                'pdf': 'application/pdf',
+                'zip': 'application/zip',
+                'rar': 'application/x-rar-compressed',
+                'txt': 'text/plain',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'mp4': 'video/mp4',
+                'mkv': 'video/x-matroska',
+                'mp3': 'audio/mpeg',
+                'wav': 'audio/x-wav'
+            };
+
+            if (mimeTypes[ext]) {
+                mimeType = mimeTypes[ext];
+            }
+
+            cordova.plugins.fileOpener2.open(
+                fileUrl,
+                mimeType,
+                {
+                    error: function (e) { alert('Açılırken hata oluştu: ' + e.message + '\\n(Cihazda bu dosyayı açacak uygulama olmayabilir)'); },
+                    success: function () { }
+                }
+            );
+        }
+
+        function deleteOfflineFile(fileName, nativeURL) {
+            if (!confirm('Bu dosyayı listeden silmek istiyor musunuz? (Cihazdan dosya yöneticisiyle silmeniz gerekebilir)')) return;
+
+            let saved = JSON.parse(localStorage.getItem('my_downloads') || '[]');
+            saved = saved.filter(f => f.name !== fileName);
+            localStorage.setItem('my_downloads', JSON.stringify(saved));
+
+            if (nativeURL) {
+                window.resolveLocalFileSystemURL(nativeURL, function (fileEntry) {
+                    fileEntry.remove(function () {
+                        // deleted physical file
+                    }, function (e) { console.log('File remove error', e); });
+                }, function (e) { console.log('Resolve error', e); });
+            }
+
+            loadDownloadedFiles();
+        }
+
+
+        function isTunnelUrl(url) {
+            return url.includes('loca.lt') || url.includes('trycloudflare') ||
+                url.includes('ngrok') || url.includes('localhost.run') ||
+                (url.startsWith('https://') && !url.includes('192.168.') && !url.includes('10.'));
+        }
+
+        function connectToServer(targetUrl) {
+            console.log("Connecting to:", targetUrl);
+
+            function handleResponse(resText, isSuccess, statusCode) {
+                if (isSuccess && statusCode === 200) {
+                    try {
+                        var data = JSON.parse(resText);
+                        if (data.ip || data.localUrl || data.url) {
+                            BASE_URL = targetUrl;
+                            isRemoteMode = true;
+                            document.getElementById('local-btn').classList.remove('hidden');
+
+                            let btn = document.getElementById('manual-connect-btn');
+                            if (btn) btn.style.display = 'none';
+
+                            alert("Bağlantı Başarılı! Artık bu sunucudaki dosyaları görüyorsunuz.");
+                            startApp();
+                        } else {
+                            alert("Bu adres bir Dosya Paylaş sunucusu değil.");
+                        }
+                    } catch (e) {
+                        alert("Sunucudan geçersiz yanıt alındı.");
+                    }
+                } else {
+                    alert("Sunucuya bağlanılamadı. (HTTP " + statusCode + ")");
+                }
+            }
+
+            if (window.cordova && cordova.plugin && cordova.plugin.http) {
+                console.log("Connecting via NATIVE HTTP...");
+                cordova.plugin.http.sendRequest(targetUrl + "/api/info", {
+                    method: 'get',
+                    headers: { 'Bypass-Tunnel-Reminder': 'true' }
+                }, function (res) {
+                    console.log("Native success!");
+                    handleResponse(res.data, true, res.status);
+                }, function (res) {
+                    console.log("Native fail!", res.error);
+                    handleResponse(null, false, res.status || 0);
+                    let btn = document.getElementById('manual-connect-btn');
+                    if (btn && btn.style.display !== 'none') {
+                        btn.innerHTML = '✅ Şifreyi Girdim, Bağlan';
+                        btn.disabled = false;
+                    }
+                });
+            } else {
+                console.log("Connecting via XMLHTTP...");
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', targetUrl + "/api/info", true);
+                xhr.setRequestHeader('Bypass-Tunnel-Reminder', 'true');
+                xhr.withCredentials = true;
+                xhr.timeout = 10000;
+                xhr.onload = function () {
+                    handleResponse(xhr.responseText, true, xhr.status);
+                };
+                xhr.onerror = function () {
+                    alert("Sunucuya bağlanılamadı.\nCihazların aynı ağda olduğundan emin olun veya tüneli kontrol edin.");
+                    let btn = document.getElementById('manual-connect-btn');
+                    if (btn && btn.style.display !== 'none') {
+                        btn.innerHTML = '✅ Şifreyi Girdim, Bağlan';
+                        btn.disabled = false;
+                    }
+                };
+                xhr.ontimeout = function () {
+                    alert("Bağlantı zaman aşımına uğradı.");
+                    let btn = document.getElementById('manual-connect-btn');
+                    if (btn && btn.style.display !== 'none') {
+                        btn.innerHTML = '✅ Şifreyi Girdim, Bağlan';
+                        btn.disabled = false;
+                    }
+                };
+                xhr.send();
+            }
+        }
+
+        function openTunnelAuth(targetUrl) {
+            alert("Chrome'da şifreyi (Public IP) girip sayfa yüklenince DOSYA PAYLAŞ KURULUMU uygulamasına geri dönün.\n\nGeri döndüğünüzde ekrandaki 'ŞİFREYİ GİRDİM, BAĞLAN' butonuna basın.");
+
+            // Ekrana manuel bağlan butonu ekle
+            let btn = document.getElementById('manual-connect-btn');
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.id = 'manual-connect-btn';
+                btn.innerHTML = '✅ Şifreyi Girdim, Bağlan';
+                btn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;border:none;padding:16px 24px;border-radius:12px;font-size:16px;font-weight:bold;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.8);cursor:pointer;width:90%;max-width:350px;text-align:center;';
+                document.body.appendChild(btn);
+            }
+            btn.style.display = 'block';
+            btn.disabled = false;
+            btn.onclick = function () {
+                btn.innerHTML = 'Bağlanıyor... Lütfen bekleyin';
+                btn.disabled = true;
+                connectToServer(targetUrl);
+            };
+
+            // Sistem tarayıcısında (Chrome) aç - kullanıcı şifreyi orada girecek
+            if (window.cordova) {
+                window.open(targetUrl, '_system');
+            } else {
+                window.open(targetUrl);
+            }
+        }
+
+        function startQrScan() {
+            if (!window.cordova || !cordova.plugins || !cordova.plugins.barcodeScanner) {
+                alert("QR Tarayıcı sadece mobil uygulamada (Android/iOS) çalışır.");
+                return;
+            }
+
+            cordova.plugins.barcodeScanner.scan(
+                function (result) {
+                    if (!result.cancelled) {
+                        let scannedText = result.text.trim();
+                        console.log("Scanned:", scannedText);
+
+                        if (scannedText.startsWith('http')) {
+                            const targetUrl = scannedText.endsWith('/') ? scannedText.slice(0, -1) : scannedText;
+
+                            if (isTunnelUrl(targetUrl)) {
+                                if (confirm("Tünel bağlantısı (İnternet) tespit edildi.\n\nBağlanmak istiyor musunuz?\n" + targetUrl)) {
+                                    // NO BROWSER REQUIRED ANYMORE!
+                                    connectToServer(targetUrl);
+                                }
+                            } else {
+                                if (confirm("Yerel ağ sunucusuna bağlanmak istiyor musunuz?\n" + targetUrl)) {
+                                    connectToServer(targetUrl);
+                                }
+                            }
+                        } else {
+                            alert("QR İçeriği:\n" + scannedText);
+                        }
+                    }
+                },
+                function (error) {
+                    alert("Tarama hatası: " + error);
+                },
+                {
+                    preferFrontCamera: false,
+                    showFlipCameraButton: true,
+                    showTorchButton: true,
+                    torchOn: false,
+                    saveHistory: true,
+                    prompt: "Sunucu QR Kodunu okutun",
+                    resultDisplayDuration: 500,
+                    formats: "QR_CODE,PDF_417",
+                    orientation: "portrait",
+                    disableAnimations: true,
+                    disableSuccessBeep: false
+                }
+            );
+        }
+
+    </script>
+    <script src="cordova.js"></script>
+    <script>
+        document.addEventListener("deviceready", function () {
+            console.log("Device Ready");
+
+            // Request Storage Permissions on startup
+            if (window.cordova && cordova.plugins.permissions) {
+                const permissions = cordova.plugins.permissions;
+                const permsList = [
+                    permissions.READ_EXTERNAL_STORAGE,
+                    permissions.WRITE_EXTERNAL_STORAGE
+                ];
+                permissions.requestPermissions(permsList, function (status) {
+                    if (!status.hasPermission) {
+                        console.warn("Depolama izni verilmedi.");
+                    }
+                }, function () {
+                    console.warn("İzin istenirken hata oluştu.");
+                });
+            }
+
+            // 1. Start Node Server with status feedback
+            serverStatusText.textContent = 'Sunucu Başlatılıyor...';
+            nodejs.start("server.js", (err) => {
+                if (err) {
+                    console.error("Node start error:", err);
+                    setServerError('Sunucu Başlatılamadı');
+                } else {
+                    console.log("Node started successfully.");
+                }
+            });
+
+            // 2. Override Fetch to use BASE_URL and bypass Localtunnel reminder
+            const originalFetch = window.fetch;
+            window._originalFetch = originalFetch; // Save for direct use in connectToIp
+
+            window.fetch = function (url, opts) {
+                opts = opts || {};
+                opts.headers = opts.headers || {};
+
+                let isRemoteReq = false;
+                if (typeof url === 'string' && url.startsWith("/")) {
+                    url = BASE_URL + url;
+                    isRemoteReq = true;
+                }
+
+                if (opts.headers instanceof Headers) {
+                    opts.headers.append('Bypass-Tunnel-Reminder', 'true');
+                } else {
+                    opts.headers['Bypass-Tunnel-Reminder'] = 'true';
+                }
+
+                // EGER Cihazdaysak, Uzak Sunucuysa ve Native HTTP Eklentisi varsa:
+                if (isRemoteReq && window.cordova && cordova.plugin && cordova.plugin.http) {
+                    // FormData (Dosya Yükleme) şimdilik originalFetch ile gitsin (localtunnel POST için cookie aramayabilir veya hata verir)
+                    if (opts.body && opts.body instanceof FormData) {
+                        return originalFetch(url, opts);
+                    }
+
+                    // Native üzerinden gönder (CORS yok, tünel şifre duvarı yok)
+                    return new Promise((resolve, reject) => {
+                        let method = (opts.method || 'get').toLowerCase();
+                        let options = {
+                            method: method,
+                            headers: opts.headers instanceof Headers ? Object.fromEntries(opts.headers) : opts.headers
+                        };
+
+                        if (opts.body && typeof opts.body === 'string') {
+                            try {
+                                options.data = JSON.parse(opts.body);
+                                options.serializer = 'json';
+                            } catch (e) {
+                                options.data = opts.body;
+                                options.serializer = 'utf8';
+                            }
+                        } else if ((method === 'post' || method === 'put') && !opts.body) {
+                            options.data = {};
+                            options.serializer = 'json';
+                        }
+
+                        cordova.plugin.http.sendRequest(url, options,
+                            function (res) {
+                                // Başarılı Fetch Response Taklidi
+                                resolve({
+                                    ok: res.status >= 200 && res.status < 300,
+                                    status: res.status,
+                                    json: () => Promise.resolve(JSON.parse(res.data)),
+                                    text: () => Promise.resolve(res.data)
+                                });
+                            },
+                            function (res) {
+                                reject(new Error("Native HTTP Error: " + res.status + " " + res.error));
+                            });
+                    });
+                }
+
+                return originalFetch(url, opts);
+            };
+
+            // 3. Poll for Server Ready
+            let serverCheckCount = 0;
+            const checkServer = setInterval(() => {
+                serverCheckCount++;
+                if (serverCheckCount > 30) {
+                    clearInterval(checkServer);
+                    setServerError('Sunucu Zaman Aşımı');
+                    return;
+                }
+                serverStatusText.textContent = 'Sunucu Bekleniyor... (' + serverCheckCount + 's)';
+
+                fetch("http://localhost:3000/api/info")
+                    .then(r => {
+                        if (r.ok) return r.json();
+                        throw new Error('not ok');
+                    })
+                    .then(data => {
+                        clearInterval(checkServer);
+                        console.log("Server detected!");
+                        setServerReady(data.ip || '');
+                        if (typeof startApp === 'function') {
+                            startApp();
+                        }
+                    })
+                    .catch(e => console.log("Waiting for server..."));
+            }, 1000);
+        }, false);
+    </script>
+</body>

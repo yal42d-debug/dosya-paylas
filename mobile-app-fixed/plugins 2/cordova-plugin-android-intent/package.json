@@ -1,0 +1,29 @@
+{
+  "name": "cordova-plugin-android-intent",
+  "version": "1.0.0",
+  "description": "Cordova plugin for sending Android intents",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "standard": "^11.0.1"
+  },
+  "scripts": {
+    "test": "standard --verbose"
+  },
+  "cordova": {
+    "id": "cordova-plugin-android-intent",
+    "platforms": [
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kapetan/cordova-plugin-android-intent.git"
+  },
+  "author": "Mirza Kapetanovic",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kapetan/cordova-plugin-android-intent/issues"
+  },
+  "homepage": "https://github.com/kapetan/cordova-plugin-android-intent#readme"
+}

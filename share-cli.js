@@ -19,6 +19,9 @@ const CONFIG_PATH = path.join(process.env.HOME || process.env.USERPROFILE, '.sha
 
 // --- DoSy All KLASÖRÜ ---
 const os = require('os');
+const isWindows = process.platform === 'win32';
+// Windows ANSI terminal desteğini etkinleştir (Windows 10+)
+if (isWindows) { try { process.stdout.write('\x1b[0m'); } catch(e) {} }
 function getDesktopPath() {
     const home = process.env.HOME || process.env.USERPROFILE || os.homedir();
     if (process.platform === 'win32') {
@@ -63,17 +66,31 @@ const colors = {
     reset: "\x1b[0m",
     bright: "\x1b[1m",
     dim: "\x1b[2m",
+    underline: "\x1b[4m",
+    reverse: "\x1b[7m",
+    black: "\x1b[30m",
+    red: "\x1b[31m",
     green: "\x1b[32m",
     yellow: "\x1b[33m",
     blue: "\x1b[34m",
     magenta: "\x1b[35m",
     cyan: "\x1b[36m",
-    red: "\x1b[31m",
     white: "\x1b[37m",
+    gray: "\x1b[90m",
+    brightRed: "\x1b[91m",
+    brightGreen: "\x1b[92m",
+    brightYellow: "\x1b[93m",
+    brightMagenta: "\x1b[95m",
+    brightCyan: "\x1b[96m",
+    brightWhite: "\x1b[97m",
+    bgRed: "\x1b[41m",
     bgGreen: "\x1b[42m",
     bgYellow: "\x1b[43m",
-    bgRed: "\x1b[41m",
-    bgBlue: "\x1b[44m"
+    bgBlue: "\x1b[44m",
+    bgMagenta: "\x1b[45m",
+    bgCyan: "\x1b[46m",
+    bgWhite: "\x1b[47m",
+    bgGray: "\x1b[100m"
 };
 
 const rl = readline.createInterface({
@@ -82,6 +99,69 @@ const rl = readline.createInterface({
 });
 
 const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+
+// --- UI DRAWING ---
+const B = isWindows ? {
+    tl: '+', tr: '+', bl: '+', br: '+',
+    h: '-', v: '|', ml: '+', mr: '+',
+    stl: '+', str: '+', sbl: '+', sbr: '+',
+    sh: '-', sv: '|', sml: '+', smr: '+',
+    std: '+', stu: '+', sx: '+',
+    dot: '.'
+} : {
+    tl: '\u2554', tr: '\u2557', bl: '\u255A', br: '\u255D',
+    h: '\u2550', v: '\u2551', ml: '\u2560', mr: '\u2563',
+    stl: '\u250C', str: '\u2510', sbl: '\u2514', sbr: '\u2518',
+    sh: '\u2500', sv: '\u2502', sml: '\u251C', smr: '\u2524',
+    std: '\u252C', stu: '\u2534', sx: '\u253C',
+    dot: '\u00B7'
+};
+const W = 52;
+// Menü ikonları - Windows ASCII / macOS Unicode
+const ICO = isWindows ? {
+    list: '=', dl: 'v', ul: '^', chat: '"'
+} : {
+    list: '\u2261', dl: '\u2193', ul: '\u2191', chat: '\u201C'
+};
+
+function stripAnsi(s) { return s.replace(/\x1b\[[0-9;]*m/g, ''); }
+function padR(s, w) { return s + ' '.repeat(Math.max(0, w - stripAnsi(s).length)); }
+function centerStr(s, w) {
+    const gap = w - stripAnsi(s).length;
+    const l = Math.floor(gap / 2);
+    return ' '.repeat(Math.max(0, l)) + s + ' '.repeat(Math.max(0, gap - l));
+}
+
+function boxTop(c) { console.log(`${c}${B.tl}${B.h.repeat(W-2)}${B.tr}${colors.reset}`); }
+function boxBot(c) { console.log(`${c}${B.bl}${B.h.repeat(W-2)}${B.br}${colors.reset}`); }
+function boxMid(c) { console.log(`${c}${B.ml}${B.h.repeat(W-2)}${B.mr}${colors.reset}`); }
+function boxRow(text, c) {
+    console.log(`${c}${B.v}${colors.reset} ${padR(text, W-4)} ${c}${B.v}${colors.reset}`);
+}
+function boxBlank(c) { console.log(`${c}${B.v}${' '.repeat(W-2)}${B.v}${colors.reset}`); }
+
+function sectionHead(title) {
+    console.log(`\n  ${colors.bright}${colors.white}${title}${colors.reset}`);
+    console.log(`  ${colors.gray}${B.sh.repeat(W - 4)}${colors.reset}`);
+}
+
+function menuItem(num, text, color = colors.brightWhite, dimmed = false) {
+    if (dimmed) {
+        console.log(`${colors.gray}${num}. ${text}${colors.reset}`);
+    } else {
+        console.log(`${colors.brightWhite}${num}.${colors.reset} ${text}`);
+    }
+}
+
+function prompt(text) {
+    return question(`\n  ${colors.brightCyan}${B.sh}${B.sh}${colors.reset} ${colors.bright}${text}${colors.reset} `);
+}
+
+function msgOk(text) { console.log(`  ${colors.brightGreen}${colors.bright}[+]${colors.reset} ${text}`); }
+function msgErr(text) { console.log(`  ${colors.brightRed}${colors.bright}[X]${colors.reset} ${text}`); }
+function msgWarn(text) { console.log(`  ${colors.brightYellow}${colors.bright}[!]${colors.reset} ${text}`); }
+function msgInfo(text) { console.log(`  ${colors.brightCyan}${colors.bright}[${B.dot}]${colors.reset} ${text}`); }
+function msgDim(text) { console.log(`  ${colors.gray}    ${text}${colors.reset}`); }
 
 // --- CONNECTION TEST ---
 async function testConnection(baseUrl, timeoutMs = 5000) {
@@ -160,31 +240,35 @@ async function request(method, apiPath, data = null, isDownload = false) {
 
 // --- ACTIONS ---
 async function showFileList() {
-    console.log(`${colors.blue}\n[v] Dosya Listesi Çekiliyor...${colors.reset}`);
+    msgInfo('Dosya listesi cekiliyor...');
     const files = await request('GET', '/api/files');
     if (!files || files.length === 0) {
-        console.log(`${colors.yellow}[!]  Sunucu şu an boş.${colors.reset}`);
+        msgWarn('Sunucu su an bos.');
         return [];
     }
-    console.log(`\n${colors.bright}${colors.white}ID  | İsim${" ".repeat(26)} | Boyut${colors.reset}`);
-    console.log(`${colors.white}${"-".repeat(50)}${colors.reset}`);
+    console.log('');
+    console.log(`  ${colors.gray}${B.stl}${B.sh.repeat(5)}${B.std}${B.sh.repeat(32)}${B.std}${B.sh.repeat(10)}${B.str}${colors.reset}`);
+    console.log(`  ${colors.gray}${B.sv}${colors.reset} ${colors.bright}${colors.brightWhite}ID ${colors.reset} ${colors.gray}${B.sv}${colors.reset} ${colors.bright}${colors.brightWhite}Dosya Adi${' '.repeat(22)}${colors.reset} ${colors.gray}${B.sv}${colors.reset} ${colors.bright}${colors.brightWhite}Boyut${colors.reset}    ${colors.gray}${B.sv}${colors.reset}`);
+    console.log(`  ${colors.gray}${B.sml}${B.sh.repeat(5)}${B.sx}${B.sh.repeat(32)}${B.sx}${B.sh.repeat(10)}${B.smr}${colors.reset}`);
     files.forEach((f, i) => {
-        const id = (i + 1).toString().padEnd(3);
+        const id = (i + 1).toString().padStart(2);
         const name = f.name.length > 30 ? f.name.substring(0, 27) + "..." : f.name.padEnd(30);
-        const size = f.size >= 1048576 ? (f.size / 1024 / 1024).toFixed(2) + " MB" : (f.size / 1024).toFixed(1) + " KB";
-        console.log(`${colors.green}${id}${colors.reset} | ${name} | ${size}`);
+        const size = (f.size >= 1048576 ? (f.size / 1024 / 1024).toFixed(2) + " MB" : (f.size / 1024).toFixed(1) + " KB").padStart(8);
+        console.log(`  ${colors.gray}${B.sv}${colors.reset} ${colors.brightGreen}${id}${colors.reset}  ${colors.gray}${B.sv}${colors.reset} ${name} ${colors.gray}${B.sv}${colors.reset} ${size} ${colors.gray}${B.sv}${colors.reset}`);
     });
+    console.log(`  ${colors.gray}${B.sbl}${B.sh.repeat(5)}${B.stu}${B.sh.repeat(32)}${B.stu}${B.sh.repeat(10)}${B.sbr}${colors.reset}`);
+    console.log(`  ${colors.gray}Toplam: ${files.length} dosya${colors.reset}`);
     return files;
 }
 
 async function handleDownload() {
     const files = await showFileList();
-    if (files.length === 0) return await question("\nDevam etmek için Enter...");
-    const choice = await question(`\n${colors.yellow}İndirmek istediğiniz dosya no (veya iptal için 0): ${colors.reset}`);
+    if (files.length === 0) return await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
+    const choice = await prompt('Indirmek istediginiz dosya no (0=iptal):');
     const index = parseInt(choice) - 1;
     if (index >= 0 && index < files.length) {
         const fileName = files[index].name;
-        console.log(`${colors.cyan}[...] ${fileName} indiriliyor...${colors.reset}`);
+        msgInfo(`${fileName} indiriliyor...`);
         const res = await request('GET', `/download/${encodeURIComponent(fileName)}`, null, true);
 
         let downloadsDir;
@@ -211,15 +295,16 @@ async function handleDownload() {
         const fileStream = fs.createWriteStream(filePath);
         res.pipe(fileStream);
         await new Promise(r => fileStream.on('finish', r));
-        console.log(`${colors.green}[+] Başarıyla İndirilenler klasörüne kaydedildi:\n   ${filePath}${colors.reset}`);
+        msgOk(`Basariyla indirildi:`);
+        msgDim(filePath);
     }
-    await question("\nDevam etmek için Enter...");
+    await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
 }
 
 // Tek dosya yükleme yardımcı fonksiyonu
 async function uploadSingleFile(cleanPath) {
     const filename = path.basename(cleanPath);
-    console.log(`${colors.cyan}[...] ${filename} yükleniyor...${colors.reset}`);
+    msgInfo(`${filename} yukleniyor...`);
 
     const boundary = '----Boundary' + Math.random().toString(36).substring(2);
     const header = `--${boundary}\r\nContent-Disposition: form-data; name="files"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
@@ -240,12 +325,12 @@ async function uploadSingleFile(cleanPath) {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => {
-                console.log(`${colors.green}[+] ${filename} başarıyla yüklendi!${colors.reset}`);
+                msgOk(`${filename} basariyla yuklendi!`);
                 resolve(true);
             });
         });
         upReq.on('error', (err) => {
-            console.log(`${colors.red}[X] ${filename} yüklenemedi: ${err.message}${colors.reset}`);
+            msgErr(`${filename} yuklenemedi: ${err.message}`);
             resolve(false);
         });
 
@@ -268,39 +353,45 @@ async function handleUpload() {
         } catch (e) { }
     }
 
-    console.log(`\n${colors.bright}${colors.cyan}[^] DOSYA YÜKLEME${colors.reset}`);
-    console.log(`${colors.dim}${"-".repeat(40)}${colors.reset}`);
-    console.log(`${colors.green}1.${colors.reset} [/] DoSy All klasöründen seç ${colors.dim}(${dosyAllFiles.length} dosya)${colors.reset}`);
-    console.log(`${colors.green}2.${colors.reset} [>]  Manuel dosya yolu gir`);
-    console.log(`${colors.red}0.${colors.reset} İptal`);
-    console.log(`${colors.dim}\n[/] DoSy All: ${DOSY_ALL_DIR}${colors.reset}`);
+    console.log('');
+    const bc = colors.cyan;
+    boxTop(bc);
+    boxRow(centerStr(`${colors.bright}${colors.brightCyan}DOSYA YUKLEME${colors.reset}`, W-4), bc);
+    boxMid(bc);
+    boxRow(`${colors.brightGreen}${colors.bright} 1 ${colors.reset}  DoSy All klasorunden sec ${colors.gray}(${dosyAllFiles.length} dosya)${colors.reset}`, bc);
+    boxRow(`${colors.brightGreen}${colors.bright} 2 ${colors.reset}  Manuel dosya yolu gir`, bc);
+    boxRow(`${colors.red}${colors.bright} 0 ${colors.reset}  ${colors.red}Iptal${colors.reset}`, bc);
+    boxMid(bc);
+    boxRow(`${colors.gray}DoSy All: ${DOSY_ALL_DIR}${colors.reset}`, bc);
+    boxBot(bc);
 
-    const uploadChoice = await question(`\n${colors.magenta}Seçiminiz: ${colors.reset}`);
+    const uploadChoice = await prompt('Seciminiz:');
 
     if (uploadChoice === '1') {
         // DoSy All klasöründen dosya seç
         if (dosyAllFiles.length === 0) {
-            console.log(`\n${colors.yellow}[!]  DoSy All klasörü boş!${colors.reset}`);
-            console.log(`${colors.dim}   Dosyalarınızı şu klasöre atın:${colors.reset}`);
-            console.log(`${colors.cyan}   ${DOSY_ALL_DIR}${colors.reset}`);
-            await question("\nDevam etmek için Enter...");
+            msgWarn('DoSy All klasoru bos!');
+            msgDim('Dosyalarinizi su klasore atin:');
+            msgDim(DOSY_ALL_DIR);
+            await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
             return;
         }
 
-        console.log(`\n${colors.bright}${colors.white}DoSy All Klasöründeki Dosyalar:${colors.reset}`);
-        console.log(`${colors.white}${"-".repeat(50)}${colors.reset}`);
+        console.log('');
+        console.log(`  ${colors.gray}${B.stl}${B.sh.repeat(5)}${B.std}${B.sh.repeat(32)}${B.std}${B.sh.repeat(10)}${B.str}${colors.reset}`);
+        console.log(`  ${colors.gray}${B.sv}${colors.reset} ${colors.bright}${colors.brightWhite}No ${colors.reset} ${colors.gray}${B.sv}${colors.reset} ${colors.bright}${colors.brightWhite}Dosya Adi${' '.repeat(22)}${colors.reset} ${colors.gray}${B.sv}${colors.reset} ${colors.bright}${colors.brightWhite}Boyut${colors.reset}    ${colors.gray}${B.sv}${colors.reset}`);
+        console.log(`  ${colors.gray}${B.sml}${B.sh.repeat(5)}${B.sx}${B.sh.repeat(32)}${B.sx}${B.sh.repeat(10)}${B.smr}${colors.reset}`);
         dosyAllFiles.forEach((f, i) => {
             const fPath = path.join(DOSY_ALL_DIR, f);
             const stat = fs.statSync(fPath);
-            const size = stat.size >= 1048576 ? (stat.size / 1024 / 1024).toFixed(2) + " MB" : (stat.size / 1024).toFixed(1) + " KB";
+            const size = (stat.size >= 1048576 ? (stat.size / 1024 / 1024).toFixed(2) + " MB" : (stat.size / 1024).toFixed(1) + " KB").padStart(8);
             const name = f.length > 30 ? f.substring(0, 27) + "..." : f.padEnd(30);
-            console.log(`${colors.green}${(i + 1).toString().padEnd(3)}${colors.reset} | ${name} | ${size}`);
+            console.log(`  ${colors.gray}${B.sv}${colors.reset} ${colors.brightGreen}${(i + 1).toString().padStart(2)}${colors.reset}  ${colors.gray}${B.sv}${colors.reset} ${name} ${colors.gray}${B.sv}${colors.reset} ${size} ${colors.gray}${B.sv}${colors.reset}`);
         });
-        console.log(`${colors.white}${"-".repeat(50)}${colors.reset}`);
-        console.log(`${colors.yellow}[*] İpucu: Hepsini yüklemek için 'hepsi' yazın${colors.reset}`);
-        console.log(`${colors.yellow}   Birden fazla: '1,3,5' veya '1-5' yazın${colors.reset}`);
+        console.log(`  ${colors.gray}${B.sbl}${B.sh.repeat(5)}${B.stu}${B.sh.repeat(32)}${B.stu}${B.sh.repeat(10)}${B.sbr}${colors.reset}`);
+        console.log(`\n  ${colors.brightYellow}[*]${colors.reset} ${colors.gray}Hepsi: 'hepsi' | Coklu: '1,3,5' | Aralik: '1-5'${colors.reset}`);
 
-        const fileChoice = await question(`\n${colors.yellow}Dosya no (veya 'hepsi'): ${colors.reset}`);
+        const fileChoice = await prompt("Dosya no (veya 'hepsi'):");
 
         let selectedIndices = [];
         const trimmedChoice = fileChoice.trim().toLowerCase();
@@ -324,39 +415,47 @@ async function handleUpload() {
         }
 
         if (selectedIndices.length === 0) {
-            console.log(`${colors.red}[X] Geçersiz seçim!${colors.reset}`);
+            msgErr('Gecersiz secim!');
         } else {
-            console.log(`\n${colors.cyan}[^] ${selectedIndices.length} dosya yüklenecek...${colors.reset}`);
+            msgInfo(`${selectedIndices.length} dosya yuklenecek...`);
             let successCount = 0;
             for (const idx of selectedIndices) {
                 const filePath = path.join(DOSY_ALL_DIR, dosyAllFiles[idx]);
                 const result = await uploadSingleFile(filePath);
                 if (result) successCount++;
             }
-            console.log(`\n${colors.green}[+] ${successCount}/${selectedIndices.length} dosya başarıyla yüklendi!${colors.reset}`);
+            console.log('');
+            msgOk(`${successCount}/${selectedIndices.length} dosya basariyla yuklendi!`);
         }
     } else if (uploadChoice === '2') {
         // Manuel dosya yolu
-        const filePath = await question(`\n${colors.yellow}Yüklenecek dosya yolu: ${colors.reset}`);
+        const filePath = await prompt('Yuklenecek dosya yolu:');
         const cleanPath = filePath.trim().replace(/^'|^"|'$|"$/g, '');
         if (!cleanPath) {
             // boş giriş, iptal
         } else if (!fs.existsSync(cleanPath)) {
-            console.log(`${colors.red}[X] Hata: Dosya bulunamadı!${colors.reset}`);
+            msgErr('Dosya bulunamadi!');
         } else {
             await uploadSingleFile(cleanPath);
         }
     }
 
-    await question("\nDevam etmek için Enter...");
+    await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
 }
 
 async function handleChat() {
     const os = require('os');
     const username = os.userInfo().username || 'CLI-User';
 
-    console.log(`\n${colors.bright}${colors.cyan}["] Chat Odasına Bağlanıldı (Kullanıcı: ${username})${colors.reset}`);
-    console.log(`${colors.dim}Çıkmak için "exit" yazın\n-----------------------------------${colors.reset}`);
+    console.log('');
+    const bc = colors.magenta;
+    boxTop(bc);
+    boxRow(centerStr(`${colors.bright}${colors.brightMagenta}CHAT ODASI${colors.reset}`, W-4), bc);
+    boxMid(bc);
+    boxRow(`${colors.brightWhite}Kullanici:${colors.reset} ${username}`, bc);
+    boxRow(`${colors.gray}Cikmak icin "exit" yazin${colors.reset}`, bc);
+    boxBot(bc);
+    console.log('');
 
     let lastMsgCount = 0;
     let isPolling = true;
@@ -397,33 +496,34 @@ async function handleChat() {
         const msg = await question('> ');
         if (msg.trim().toLowerCase() === 'exit') {
             isPolling = false;
-            console.log(`\n${colors.red}[-] Chat odasından ayrıldınız.${colors.reset}`);
+            console.log('');
+            msgWarn('Chat odasindan ayrildiniz.');
             break;
         }
         if (msg.trim()) {
             try {
                 await request('POST', '/api/chat', { sender: username, text: msg.trim() });
             } catch (e) {
-                console.log(`${colors.red}[X] Gönderilemedi: ${e.message}${colors.reset}`);
+                msgErr(`Gonderilemedi: ${e.message}`);
             }
         }
     }
 
-    await question("\nDevam etmek için Enter...");
+    await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
 }
 
 // --- SERVER START ---
 async function startLocalServer() {
     const serverPath = path.join(__dirname, 'server.js');
     if (!fs.existsSync(serverPath)) {
-        console.log(`${colors.red}[X] server.js bulunamadı: ${serverPath}${colors.reset}`);
+        msgErr(`server.js bulunamadi: ${serverPath}`);
         return false;
     }
 
     // Check if already running
     const check = await testConnection('http://localhost:3000', 2000);
     if (check.success) {
-        console.log(`${colors.yellow}[!]  Port 3000'de zaten bir sunucu çalışıyor.${colors.reset}`);
+        msgWarn("Port 3000'de zaten bir sunucu calisiyor.");
         config.apiBase = 'http://localhost:3000';
         connectionMode = 'local-server';
         serverInfo = check.info;
@@ -431,12 +531,12 @@ async function startLocalServer() {
         // Mevcut sunucunun klasörünü DoSy All olarak ayarla
         try {
             await request('POST', '/api/set-dir', { dir: DOSY_ALL_DIR });
-            console.log(`${colors.green}[/] Paylaşım klasörü: ${DOSY_ALL_DIR}${colors.reset}`);
+            msgOk(`Paylasim klasoru: ${DOSY_ALL_DIR}`);
         } catch (e) { }
         return true;
     }
 
-    console.log(`${colors.cyan}[>>] Sunucu başlatılıyor...${colors.reset}`);
+    msgInfo('Sunucu baslatiliyor...');
     serverProcess = spawn('node', [serverPath, '--dir', DOSY_ALL_DIR], {
         cwd: __dirname,
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -451,19 +551,21 @@ async function startLocalServer() {
     });
     serverProcess.on('exit', (code) => {
         if (code !== 0 && code !== null) {
-            console.log(`${colors.red}[!]  Sunucu kapandı (kod: ${code})${colors.reset}`);
+            msgErr(`Sunucu kapandi (kod: ${code})`);
         }
         serverProcess = null;
     });
 
-    // Wait for server to be ready (up to 15 seconds)
-    for (let i = 0; i < 15; i++) {
-        process.stdout.write(`\r${colors.yellow}[...] Sunucu bekleniyor... (${i + 1}s)${colors.reset}`);
-        await new Promise(r => setTimeout(r, 1000));
-        const result = await testConnection('http://localhost:3000', 2000);
+    // Wait for server to be ready (up to 10 seconds, 500ms aralıkla)
+    for (let i = 0; i < 20; i++) {
+        const dots = '.'.repeat((i % 3) + 1).padEnd(3);
+        process.stdout.write(`\r  ${colors.brightCyan}${colors.bright}[${B.dot}]${colors.reset} Sunucu bekleniyor${dots} ${colors.gray}(${((i + 1) * 0.5).toFixed(1)}s)${colors.reset}   `);
+        await new Promise(r => setTimeout(r, 500));
+        const result = await testConnection('http://localhost:3000', 1500);
         if (result.success) {
-            process.stdout.write(`\r${colors.green}[+] Sunucu başarıyla başlatıldı!            ${colors.reset}\n`);
-            console.log(`${colors.green}[/] Paylaşım klasörü: ${DOSY_ALL_DIR}${colors.reset}`);
+            process.stdout.write('\r' + ' '.repeat(50) + '\r');
+            msgOk('Sunucu basariyla baslatildi!');
+            msgOk(`Paylasim klasoru: ${DOSY_ALL_DIR}`);
             config.apiBase = 'http://localhost:3000';
             connectionMode = 'local-server';
             serverInfo = result.info;
@@ -472,24 +574,31 @@ async function startLocalServer() {
         }
     }
 
-    console.log(`\n${colors.red}[X] Sunucu başlatılamadı. Lüften logları kontrol edin.${colors.reset}`);
+    process.stdout.write('\r' + ' '.repeat(50) + '\r');
+    msgErr('Sunucu baslatilamadi. Lutfen loglari kontrol edin.');
     return false;
 }
 
 // --- CONNECT TO ANOTHER SERVER ---
 async function handleConnect() {
-    console.log(`\n${colors.bright}${colors.cyan}[<>] SUNUCUYA BAĞLANMA${colors.reset}`);
-    console.log(`${colors.dim}Mevcut bağlantı: ${config.apiBase}${colors.reset}\n`);
-    console.log(`${colors.green}1.${colors.reset} Yerel ağdaki sunucuya bağlan (IP:Port)`);
-    console.log(`${colors.green}2.${colors.reset} Uzak sunucuya bağlan (Tünel URL)`);
-    console.log(`${colors.green}3.${colors.reset} Kendi sunucumu başlat (localhost:3000)`);
-    console.log(`${colors.red}0.${colors.reset} İptal - Ana Menüye Dön`);
+    console.log('');
+    const bc = colors.cyan;
+    boxTop(bc);
+    boxRow(centerStr(`${colors.bright}${colors.brightCyan}SUNUCUYA BAGLANMA${colors.reset}`, W-4), bc);
+    boxMid(bc);
+    boxRow(`${colors.gray}Mevcut: ${config.apiBase}${colors.reset}`, bc);
+    boxMid(bc);
+    boxRow(`${colors.brightGreen}${colors.bright} 1 ${colors.reset}  Yerel agdaki sunucuya baglan ${colors.gray}(IP:Port)${colors.reset}`, bc);
+    boxRow(`${colors.brightGreen}${colors.bright} 2 ${colors.reset}  Uzak sunucuya baglan ${colors.gray}(Tunel URL)${colors.reset}`, bc);
+    boxRow(`${colors.brightGreen}${colors.bright} 3 ${colors.reset}  Kendi sunucumu baslat ${colors.gray}(localhost:3000)${colors.reset}`, bc);
+    boxRow(`${colors.red}${colors.bright} 0 ${colors.reset}  ${colors.red}Iptal - Ana Menuye Don${colors.reset}`, bc);
+    boxBot(bc);
 
-    const choice = await question(`\n${colors.magenta}Seçiminiz: ${colors.reset}`);
+    const choice = await prompt('Seciminiz:');
 
     if (choice === '1') {
         // Local network connection
-        const ipInput = await question(`${colors.yellow}IP adresi ve port (örn: 192.168.1.42:3000): ${colors.reset}`);
+        const ipInput = await prompt('IP adresi ve port (orn: 192.168.1.42:3000):');
         if (!ipInput.trim()) return;
 
         let targetUrl = ipInput.trim();
@@ -497,7 +606,7 @@ async function handleConnect() {
         if (targetUrl.split(':').length < 3) targetUrl += ':3000';
         targetUrl = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
 
-        console.log(`${colors.cyan}[?] Bağlantı test ediliyor: ${targetUrl}${colors.reset}`);
+        msgInfo(`Baglanti test ediliyor: ${targetUrl}`);
         const result = await testConnection(targetUrl);
 
         if (result.success) {
@@ -505,21 +614,21 @@ async function handleConnect() {
             connectionMode = 'remote-local';
             serverInfo = result.info;
             saveConfig(config);
-            console.log(`${colors.green}[+] Bağlantı başarılı!${colors.reset}`);
-            if (result.info.shareDir) console.log(`${colors.dim}   Paylaşılan klasör: ${result.info.shareDir}${colors.reset}`);
+            msgOk('Baglanti basarili!');
+            if (result.info.shareDir) msgDim(`Paylasilan klasor: ${result.info.shareDir}`);
         } else {
-            console.log(`${colors.red}[X] Bağlantı başarısız: ${result.error}${colors.reset}`);
-            console.log(`${colors.dim}   İpucu: Cihazların aynı Wi-Fi ağında olduğundan emin olun.${colors.reset}`);
+            msgErr(`Baglanti basarisiz: ${result.error}`);
+            msgDim('Ipucu: Cihazlarin ayni Wi-Fi aginda oldugundan emin olun.');
         }
     } else if (choice === '2') {
         // Remote tunnel connection
-        const urlInput = await question(`${colors.yellow}Tünel URL (örn: https://abc123.loca.lt): ${colors.reset}`);
+        const urlInput = await prompt('Tunel URL (orn: https://abc123.loca.lt):');
         if (!urlInput.trim()) return;
 
         let targetUrl = urlInput.trim();
         targetUrl = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
 
-        console.log(`${colors.cyan}[?] Uzak sunucu test ediliyor: ${targetUrl}${colors.reset}`);
+        msgInfo(`Uzak sunucu test ediliyor: ${targetUrl}`);
         const result = await testConnection(targetUrl, 10000); // longer timeout for tunnels
 
         if (result.success) {
@@ -527,78 +636,84 @@ async function handleConnect() {
             connectionMode = 'remote-tunnel';
             serverInfo = result.info;
             saveConfig(config);
-            console.log(`${colors.green}[+] Uzak sunucuya bağlantı başarılı!${colors.reset}`);
+            msgOk('Uzak sunucuya baglanti basarili!');
         } else {
-            console.log(`${colors.red}[X] Bağlantı başarısız: ${result.error}${colors.reset}`);
-            console.log(`${colors.dim}   İpucu: Localtunnel için önce tarayıcıdan Public IP girilmesi gerekebilir.${colors.reset}`);
+            msgErr(`Baglanti basarisiz: ${result.error}`);
+            msgDim('Ipucu: Localtunnel icin once tarayicidan Public IP girilmesi gerekebilir.');
         }
     } else if (choice === '3') {
         // Start own server
         await startLocalServer();
     }
 
-    await question("\nDevam etmek için Enter...");
+    await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
 }
 
 // --- TUNNEL CONTROL ---
 async function handleTunnel() {
     if (connectionMode !== 'local-server' && config.apiBase !== 'http://localhost:3000') {
-        console.log(`${colors.yellow}[!]  Tünel yönetimi sadece kendi sunucunuzda çalışır.${colors.reset}`);
-        console.log(`${colors.dim}   Şu an ${config.apiBase} adresine bağlısınız.${colors.reset}`);
-        await question("\nDevam etmek için Enter...");
+        msgWarn('Tunel yonetimi sadece kendi sunucunuzda calisir.');
+        msgDim(`Su an ${config.apiBase} adresine baglisiniz.`);
+        await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
         return;
     }
 
     try {
         const status = await request('GET', '/api/tunnel/status');
-        console.log(`\n${colors.bright}${colors.cyan}[~~] TÜNEL YÖNETİMİ${colors.reset}`);
+        console.log('');
+        const bc = colors.cyan;
+        boxTop(bc);
+        boxRow(centerStr(`${colors.bright}${colors.brightCyan}TUNEL YONETIMI${colors.reset}`, W-4), bc);
+        boxMid(bc);
         if (status.running && status.url) {
-            console.log(`${colors.green}Durum: Aktif [+]${colors.reset}`);
-            console.log(`${colors.white}URL: ${status.url}${colors.reset}`);
+            boxRow(`${colors.brightGreen}${colors.bright}Durum:${colors.reset} Aktif                ${colors.brightGreen}${colors.bright}[+]${colors.reset}`, bc);
+            boxRow(`${colors.brightYellow}URL:${colors.reset}   ${status.url}`, bc);
+            boxBot(bc);
             if (qrcodeTerminal) {
                 console.log('');
                 qrcodeTerminal.generate(status.url, { small: true });
             }
-            const action = await question(`\n${colors.yellow}Tüneli kapatmak ister misiniz? (e/h): ${colors.reset}`);
+            const action = await prompt('Tuneli kapatmak ister misiniz? (e/h):');
             if (action.toLowerCase() === 'e') {
                 await request('POST', '/api/tunnel/stop');
-                console.log(`${colors.green}[+] Tünel kapatıldı.${colors.reset}`);
+                msgOk('Tunel kapatildi.');
             }
         } else {
-            console.log(`${colors.yellow}Durum: Kapalı [X]${colors.reset}`);
-            const action = await question(`\n${colors.yellow}Tüneli açmak ister misiniz? (e/h): ${colors.reset}`);
+            boxRow(`${colors.brightRed}${colors.bright}Durum:${colors.reset} Kapali               ${colors.brightRed}${colors.bright}[-]${colors.reset}`, bc);
+            boxBot(bc);
+            const action = await prompt('Tuneli acmak ister misiniz? (e/h):');
             if (action.toLowerCase() === 'e') {
-                console.log(`${colors.cyan}[...] Tünel açılıyor...${colors.reset}`);
+                msgInfo('Tunel aciliyor...');
                 const result = await request('POST', '/api/tunnel/start');
                 if (result.url) {
-                    console.log(`${colors.green}[+] Tünel açıldı: ${result.url}${colors.reset}`);
+                    msgOk(`Tunel acildi: ${result.url}`);
                     if (qrcodeTerminal) {
                         console.log('');
                         qrcodeTerminal.generate(result.url, { small: true });
                     }
                 } else {
-                    console.log(`${colors.red}[X] Tünel açılamadı: ${result.error || 'Bilinmeyen hata'}${colors.reset}`);
+                    msgErr(`Tunel acilamadi: ${result.error || 'Bilinmeyen hata'}`);
                 }
             }
         }
     } catch (e) {
-        console.log(`${colors.red}[X] Tünel durumu alınamadı: ${e.message}${colors.reset}`);
+        msgErr(`Tunel durumu alinamadi: ${e.message}`);
     }
-    await question("\nDevam etmek için Enter...");
+    await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
 }
 
 // --- BANNER ---
 async function printBanner() {
+    process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
     console.clear();
 
-    // Determine connection status
-    let statusIcon, statusText, statusColor;
-    const result = await testConnection(config.apiBase, 3000);
+    // Determine connection status (kısa timeout - menü hızlı açılsın)
+    let statusText, statusColor;
+    const result = await testConnection(config.apiBase, 1500);
     if (result.success) {
         serverInfo = result.info;
-        statusIcon = '[+]';
         statusText = 'Bağlı';
-        statusColor = colors.green;
+        statusColor = colors.brightGreen;
 
         // Detect mode
         if (config.apiBase === 'http://localhost:3000') connectionMode = 'local-server';
@@ -606,57 +721,63 @@ async function printBanner() {
         else connectionMode = 'remote-local';
     } else {
         serverInfo = null;
-        statusIcon = '[-]';
         statusText = 'Bağlantı Yok';
-        statusColor = colors.red;
+        statusColor = colors.brightRed;
         connectionMode = 'disconnected';
     }
 
     // Mode description
-    let modeDesc;
+    let modeDesc, modeIcon;
     switch (connectionMode) {
-        case 'local-server': modeDesc = '[~] Kendi Sunucum (localhost)'; break;
-        case 'remote-local': modeDesc = '[=] Yerel Ağdaki Sunucu'; break;
-        case 'remote-tunnel': modeDesc = '[@] Uzak Sunucu (Tünel)'; break;
-        default: modeDesc = '[X] Bağlı Değil'; break;
+        case 'local-server': modeDesc = 'Kendi Sunucum (localhost)'; modeIcon = '~'; break;
+        case 'remote-local': modeDesc = 'Yerel Ağ'; modeIcon = '='; break;
+        case 'remote-tunnel': modeDesc = 'Tünel'; modeIcon = '@'; break;
+        default: modeDesc = 'Bağlı Değil'; modeIcon = 'x'; break;
     }
 
-    console.log(`${colors.cyan}${colors.bright}╔══════════════════════════════════════════╗`);
-    console.log(`║   [>>] SHARE-CLI TERMINAL ARAYÜZÜ v3.0    ║`);
-    console.log(`╚══════════════════════════════════════════╝${colors.reset}`);
-    console.log(`${statusColor}${statusIcon} Durum: ${statusText}${colors.reset}   ${colors.dim}${modeDesc}${colors.reset}`);
-    console.log(`${colors.yellow}[<>] Sunucu:${colors.reset}  ${config.apiBase}`);
-
+    // Experimental layout
+    const w = 42;
+    const [bTL, bTR, bBL, bBR, bH, bV] = isWindows
+        ? ['+', '+', '+', '+', '=', '|']
+        : ['\u2554', '\u2557', '\u255A', '\u255D', '\u2550', '\u2551'];
+    console.log(`${colors.brightMagenta}${bTL}${bH.repeat(w)}${bTR}${colors.reset}`);
+    const title = '[>>] SHARE-CLI TERMINAL ARAYUZU v3.0';
+    console.log(`${colors.brightMagenta}${bV}${colors.reset}   ${colors.brightWhite}${title}${colors.reset}   ${colors.brightMagenta}${bV}${colors.reset}`);
+    console.log(`${colors.brightMagenta}${bBL}${bH.repeat(w)}${bBR}${colors.reset}`);
+    
+    const sIcon = connectionMode !== 'disconnected' ? `${statusColor}${colors.bright}[+]${colors.reset}` : `${statusColor}${colors.bright}[X]${colors.reset}`;
+    console.log(`${sIcon} Durum: ${statusText}   ${colors.gray}[${modeIcon}] ${modeDesc}${colors.reset}`);
+    
+    console.log(`${colors.blue}[<>]${colors.reset} Sunucu:  ${config.apiBase}`);
     if (serverInfo) {
         const localUrl = serverInfo.localUrl || serverInfo.url || '';
         const tunnelUrl = serverInfo.tunnelUrl || ((serverInfo.running && serverInfo.url) ? serverInfo.url : null);
         if (localUrl && connectionMode === 'local-server') {
-            console.log(`${colors.yellow}[=] Yerel:${colors.reset}   ${localUrl}`);
+            console.log(`${colors.brightYellow}[=]${colors.reset} Yerel:   ${localUrl}`);
         }
         if (tunnelUrl) {
-            console.log(`${colors.yellow}[@] Tünel:${colors.reset}   ${tunnelUrl}`);
+            console.log(`${colors.brightMagenta}[@]${colors.reset} Tünel:   ${tunnelUrl}`);
         }
         if (serverInfo.shareDir) {
-            console.log(`${colors.yellow}[/] Klasör:${colors.reset}  ${serverInfo.shareDir}`);
+            console.log(`${colors.brightCyan}[/]${colors.reset} Klasör:  ${serverInfo.shareDir}`);
         }
     }
-    console.log(`${colors.yellow}[/] DoSy All:${colors.reset} ${DOSY_ALL_DIR}`);
-    console.log(`${colors.cyan}${"-".repeat(44)}${colors.reset}\n`);
+    console.log(`${colors.brightCyan}[/]${colors.reset} DoSy All: ${DOSY_ALL_DIR}`);
+    console.log(`${colors.gray}${(isWindows ? '-' : '\u2500').repeat(44)}${colors.reset}`);
+    console.log('');
 }
 
 // --- MAIN LOOP ---
 async function mainMenu() {
     // İlk başlatmada: sunucuya bağlıysa DoSy All'ı paylaşım klasörü yap
-    try {
-        const initCheck = await testConnection(config.apiBase, 3000);
-        if (initCheck.success) {
-            await request('POST', '/api/set-dir', { dir: DOSY_ALL_DIR });
-        } else {
-            console.log("\nOtomatik olarak yerel sunucu başlatılıyor...");
-            await startLocalServer();
-        }
-    } catch (e) {
-        console.log("\nOtomatik olarak yerel sunucu başlatılıyor...");
+    const initCheck = await testConnection(config.apiBase, 2000);
+    if (initCheck.success) {
+        serverInfo = initCheck.info;
+        connectionMode = config.apiBase === 'http://localhost:3000' ? 'local-server' :
+            (config.apiBase.includes('loca.lt') || config.apiBase.startsWith('https://')) ? 'remote-tunnel' : 'remote-local';
+        try { await request('POST', '/api/set-dir', { dir: DOSY_ALL_DIR }); } catch (e) { }
+    } else {
+        msgInfo('Otomatik olarak yerel sunucu baslatiliyor...');
         await startLocalServer();
     }
 
@@ -666,115 +787,205 @@ async function mainMenu() {
         const isConnected = connectionMode !== 'disconnected';
         const isLocalServer = connectionMode === 'local-server';
 
-        console.log(`${colors.bright}${colors.white}ANA MENÜ:${colors.reset}`);
-
+        // -- MENÜ ITEMLERI --
+        console.log(`ANA MENU:`);
         if (isConnected) {
-            console.log(`${colors.green}1.${colors.reset} Dosyaları Listele`);
-            console.log(`${colors.green}2.${colors.reset} Dosya İndir`);
-            console.log(`${colors.green}3.${colors.reset} Dosya Yükle ${colors.dim}(DoSy All veya manuel)${colors.reset}`);
+            menuItem('1', `${colors.brightCyan}[${ICO.list}]${colors.reset} Dosyalari Listele`, colors.brightWhite);
         } else {
-            console.log(`${colors.dim}1. Dosyaları Listele (bağlantı gerekli)${colors.reset}`);
-            console.log(`${colors.dim}2. Dosya İndir (bağlantı gerekli)${colors.reset}`);
-            console.log(`${colors.dim}3. Dosya Yükle (bağlantı gerekli)${colors.reset}`);
+            menuItem('1', `[${ICO.list}] Dosyalari Listele (Baglanti gerekli)`, colors.gray, true);
         }
-        console.log(`${colors.blue}4.${colors.reset} [<>] Sunucuya Bağlan / Kendi Sunucunu Başlat`);
+
         if (isLocalServer) {
-            console.log(`${colors.blue}5.${colors.reset} [~~] Tünel Yönetimi (Dış Erişim Aç/Kapa)`);
-            console.log(`${colors.blue}6.${colors.reset} [/] Paylaşılan Klasörü Değiştir`);
+            menuItem('2', `${colors.brightCyan}[/]${colors.reset} Paylasilan Klasoru Degistir`, colors.brightWhite);
         } else {
-            console.log(`${colors.dim}5. [~~] Tünel Yönetimi (kendi sunucunuzda çalışır)${colors.reset}`);
-            console.log(`${colors.dim}6. [/] Paylaşılan Klasörü Değiştir (kendi sunucunuzda çalışır)${colors.reset}`);
+            menuItem('2', '[/] Paylasilan Klasoru Degistir (Kendi sunucunuzda)', colors.gray, true);
         }
-        console.log(`${colors.yellow}7.${colors.reset} [#] Sunucu Bilgileri & QR Kodları`);
-        if (isConnected) {
-            console.log(`${colors.magenta}8.${colors.reset} ["] Chat Odasına Katıl`);
-        } else {
-            console.log(`${colors.dim}8. ["] Chat Odasına Katıl (bağlantı gerekli)${colors.reset}`);
-        }
-        console.log(`${colors.red}9.${colors.reset} [Q] Çıkış`);
 
-        const choice = await question(`\n${colors.magenta}Seçiminiz: ${colors.reset}`);
+        if (isConnected) {
+            menuItem('3', `${colors.brightGreen}[${ICO.dl}]${colors.reset} Dosya Indir`, colors.brightWhite);
+            menuItem('4', `${colors.brightYellow}[${ICO.ul}]${colors.reset} Dosya Yukle ${colors.gray}(DoSy All veya manuel)${colors.reset}`, colors.brightWhite);
+        } else {
+            menuItem('3', `[${ICO.dl}] Dosya Indir (Baglanti gerekli)`, colors.gray, true);
+            menuItem('4', `[${ICO.ul}] Dosya Yukle (Baglanti gerekli)`, colors.gray, true);
+        }
+
+        console.log('');
+
+        menuItem('5', `${colors.blue}[<>]${colors.reset} Sunucuya Baglan / Kendi Sunucunu Baslat`, colors.brightWhite);
+
+        if (isLocalServer) {
+            menuItem('6', `${colors.brightMagenta}[~~]${colors.reset} Tunel Yonetimi (Dis Erisim Ac/Kapa)`, colors.brightWhite);
+        } else {
+            menuItem('6', '[~~] Tunel Yonetimi (Kendi sunucunuzda)', colors.gray, true);
+        }
+
+        console.log('');
+
+        menuItem('7', `${colors.brightYellow}[#]${colors.reset} Sunucu Bilgileri & QR Kodlari`, colors.brightWhite);
+
+        console.log('');
+
+        if (isConnected) {
+            menuItem('8', `${colors.brightGreen}[${ICO.chat}]${colors.reset} Chat Odasina Katil`, colors.brightWhite);
+        } else {
+            menuItem('8', `[${ICO.chat}] Chat Odasina Katil (Baglanti gerekli)`, colors.gray, true);
+        }
+
+        menuItem('9', `${colors.brightRed}[Q]${colors.reset} Cikis`, colors.brightWhite);
+        menuItem('0', `${colors.brightCyan}[R]${colors.reset} Sunucuyu Yeniden Baslat`, colors.brightWhite);
+
+        const choice = await prompt('Seciminiz:');
+        console.clear();
 
         try {
             if (choice === '1' && isConnected) {
                 await showFileList();
-                await question("\nDevam etmek için Enter...");
+                await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
             }
-            else if (choice === '2' && isConnected) { await handleDownload(); }
-            else if (choice === '3' && isConnected) { await handleUpload(); }
-            else if (choice === '4') {
-                await handleConnect();
-            }
-            else if (choice === '5') {
-                await handleTunnel();
-            }
-            else if (choice === '6' && isLocalServer) {
-                const newPath = await question(`Paylaşılacak klasör yolu: `);
+            else if (choice === '2' && isLocalServer) {
+                const newPath = await prompt('Paylasilacak klasor yolu:');
                 if (newPath) {
                     const cleanPath = newPath.trim().replace(/^'|^"|'$|"$/g, '');
                     const res = await request('POST', '/api/set-dir', { dir: cleanPath });
                     if (res.shareDir) {
-                        console.log(`${colors.green}[+] Sunucu klasörü güncellendi: ${res.shareDir}${colors.reset}`);
+                        msgOk(`Sunucu klasoru guncellendi: ${res.shareDir}`);
                     } else {
-                        console.log(`${colors.red}[X] Hata: Klasör değiştirilemedi.${colors.reset}`);
+                        msgErr('Klasor degistirilemedi.');
                     }
                 }
-                await question("\nEnter...");
+                await question(`\n  ${colors.gray}Enter...${colors.reset}`);
+            }
+            else if (choice === '3' && isConnected) { await handleDownload(); }
+            else if (choice === '4' && isConnected) { await handleUpload(); }
+            else if (choice === '5') {
+                await handleConnect();
+            }
+            else if (choice === '6') {
+                await handleTunnel();
             }
             else if (choice === '7') {
                 if (!isConnected) {
-                    console.log(`${colors.red}[!]  Önce bir sunucuya bağlanmalısınız. (Seçenek 4)${colors.reset}`);
+                    msgErr('Once bir sunucuya baglanmalisiniz. (Secenek 5)');
                 } else {
-                    console.log(`\n${colors.bright}Sunucu Bilgileri & QR Kodları:${colors.reset}`);
                     const info = await request('GET', '/api/info');
+                    console.log('');
+                    const bc7 = colors.cyan;
+                    boxTop(bc7);
+                    boxRow(centerStr(`${colors.bright}${colors.brightCyan}SUNUCU BILGILERI & QR${colors.reset}`, W-4), bc7);
+                    boxBot(bc7);
 
                     const localUrl = info.localUrl || info.url || config.apiBase;
-                    console.log(`\n${colors.yellow}[=] YEREL AĞ BAĞLANTISI:${colors.reset}`);
-                    console.log(`${localUrl}`);
+                    console.log(`\n  ${colors.bright}${colors.brightYellow}YEREL AG BAGLANTISI${colors.reset}`);
+                    console.log(`  ${colors.gray}${B.sh.repeat(W-4)}${colors.reset}`);
+                    console.log(`  ${colors.brightWhite}${localUrl}${colors.reset}`);
                     if (qrcodeTerminal) {
                         qrcodeTerminal.generate(localUrl, { small: true });
                     } else {
-                        console.log(`${colors.cyan}(QR Kodu için: npm install qrcode-terminal)${colors.reset}`);
+                        msgDim('QR Kodu icin: npm install qrcode-terminal');
                     }
 
                     const tunnelUrl = info.tunnelUrl;
-                    console.log(`\n${colors.yellow}[@] İNTERNET/TÜNEL BAĞLANTISI:${colors.reset}`);
+                    console.log(`\n  ${colors.bright}${colors.brightYellow}INTERNET / TUNEL BAGLANTISI${colors.reset}`);
+                    console.log(`  ${colors.gray}${B.sh.repeat(W-4)}${colors.reset}`);
                     if (tunnelUrl) {
-                        console.log(`${tunnelUrl}`);
+                        console.log(`  ${colors.brightWhite}${tunnelUrl}${colors.reset}`);
                         if (qrcodeTerminal) {
                             qrcodeTerminal.generate(tunnelUrl, { small: true });
                         } else {
-                            console.log(`${colors.cyan}(QR Kodu için: npm install qrcode-terminal)${colors.reset}`);
+                            msgDim('QR Kodu icin: npm install qrcode-terminal');
                         }
                     } else if (info.tunnelError) {
-                        console.log(`${colors.red}[X] Tünel Bağlantı Hatası: ${info.tunnelError}${colors.reset}`);
-                        console.log(`${colors.dim}   (Sunucu otomatik olarak yeniden bağlanmaya çalışıyor...)${colors.reset}`);
+                        msgErr(`Tunel Baglanti Hatasi: ${info.tunnelError}`);
+                        msgDim('Sunucu otomatik olarak yeniden baglanmaya calisiyor...');
                     } else {
-                        console.log(`${colors.yellow}[...] Tünel bağlantısı bekleniyor veya kapalı...${colors.reset}`);
+                        msgInfo('Tunel baglantisi bekleniyor veya kapali...');
                     }
 
                     if (info.publicIp) {
-                        console.log(`\n${colors.yellow}[$] Public IP (Tünel şifresi): ${colors.reset}${info.publicIp}`);
+                        console.log(`\n  ${colors.bright}${colors.brightYellow}PUBLIC IP ${colors.gray}(Tunel sifresi)${colors.reset}`);
+                        console.log(`  ${colors.gray}${B.sh.repeat(W-4)}${colors.reset}`);
+                        console.log(`  ${colors.brightWhite}${info.publicIp}${colors.reset}`);
                     }
                 }
-                await question("\nDevam etmek için Enter...");
+                await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
             }
             else if (choice === '8' && isConnected) {
                 await handleChat();
             }
-            else if (choice === '9') {
-                console.log(`${colors.yellow}Sunucu kapatılıyor...${colors.reset}`);
+            else if (choice === '9' || choice.toLowerCase() === 'q') {
+                console.log('');
+                msgInfo('Sunucu kapatiliyor...');
                 shutdownServer();
-                console.log("Güle güle!");
+                console.log(`\n  ${colors.bright}${colors.brightCyan}Gule gule!${colors.reset}\n`);
                 setTimeout(() => process.exit(0), 100);
             }
-            else if (['1', '2', '3', '8'].includes(choice) && !isConnected) {
-                console.log(`${colors.red}[!]  Önce bir sunucuya bağlanmalısınız. (Seçenek 4)${colors.reset}`);
-                await question("\nEnter...");
+            else if (choice === '0') {
+                console.log('');
+
+                let wasTunnelActive = false;
+                if (isConnected) {
+                    try {
+                        const statusResp = await request('GET', '/api/tunnel/status');
+                        if (statusResp && statusResp.running) {
+                            wasTunnelActive = true;
+                        }
+                    } catch (e) {}
+                }
+
+                msgInfo('Sunucu yeniden baslatiliyor...');
+                shutdownServer();
+
+                // Eski sunucu tamamen kapanana kadar bekle (max 6s)
+                msgInfo('Eski sunucu kapatiliyor...');
+                let serverDead = false;
+                for (let i = 0; i < 12; i++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    const stillUp = await testConnection('http://localhost:3000', 500);
+                    if (!stillUp.success) {
+                        serverDead = true;
+                        break;
+                    }
+                }
+                if (!serverDead) {
+                    msgWarn('Sunucu tam kapanmadi, devam ediliyor...');
+                }
+
+                const started = await startLocalServer();
+                
+                if (started && wasTunnelActive) {
+                    msgInfo('Tunel yeniden aciliyor, lutfen bekleyin...');
+                    await new Promise(r => setTimeout(r, 2000)); // sunucu tamamen ayağa kalkıp tünel isteğine hazır olana kadar azıcık tolerans
+                    try {
+                        let waitTunnel = 0;
+                        let lastResult = null;
+                        while(waitTunnel < 3){
+                            const result = await request('POST', '/api/tunnel/start');
+                            if (result && result.url) {
+                                lastResult = result;
+                                break;
+                            }
+                            waitTunnel++;
+                            await new Promise(r => setTimeout(r, 2000));
+                        }
+                        if (lastResult && lastResult.url) {
+                            msgOk(`Tunel basariyla acildi: ${lastResult.url}`);
+                        } else {
+                            msgErr('Tunel acilamadi.');
+                        }
+                    } catch (e) {
+                        msgErr('Tunel baglantisi kurulamadi.');
+                    }
+                }
+
+                await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
+            }
+            else if (['1', '3', '4', '8'].includes(choice) && !isConnected) {
+                msgErr('Once bir sunucuya baglanmalisiniz. (Secenek 5)');
+                await question(`\n  ${colors.gray}Enter...${colors.reset}`);
             }
         } catch (e) {
-            console.log(`${colors.red}[X] Hata: ${e.message}${colors.reset}`);
-            await question("\nEnter...");
+            msgErr(`Hata: ${e.message}`);
+            await question(`\n  ${colors.gray}Enter...${colors.reset}`);
         }
     }
 }

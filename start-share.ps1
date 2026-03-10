@@ -5,11 +5,35 @@ $env:NODE_NO_WARNINGS = "1"
 # npm.ps1 gibi script dosyalarının calismasi icin (sadece bu oturum icin)
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
-Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "[>>] SHARE-CLI HIZLI BASLATICI v3.0 (Windows)" -ForegroundColor Green
-Write-Host "==========================================" -ForegroundColor Cyan
+# Box karakterleri
+$H = [char]0x2550; $V = [char]0x2551
+$TL = [char]0x2554; $TR = [char]0x2557; $BL = [char]0x255A; $BR2 = [char]0x255D
+$ML = [char]0x2560; $MR = [char]0x2563
+$SH = [char]0x2500; $DOT = [char]0x00B7
 
-# DoSy All klasörünü masaüstünde oluştur
+function ok($t)   { Write-Host "  " -NoNewline; Write-Host "[+]" -NoNewline -ForegroundColor Green; Write-Host " $t" }
+function err($t)  { Write-Host "  " -NoNewline; Write-Host "[X]" -NoNewline -ForegroundColor Red; Write-Host " $t" }
+function warn($t) { Write-Host "  " -NoNewline; Write-Host "[!]" -NoNewline -ForegroundColor Yellow; Write-Host " $t" }
+function nfo($t)  { Write-Host "  " -NoNewline; Write-Host "[$DOT]" -NoNewline -ForegroundColor Cyan; Write-Host " $t" }
+function dim($t)  { Write-Host "      $t" -ForegroundColor DarkGray }
+
+$hline = "$H" * 48
+
+Write-Host ""
+Write-Host "$TL$hline$TR" -ForegroundColor Cyan
+Write-Host "$V                                                $V" -ForegroundColor Cyan
+Write-Host "$V" -NoNewline -ForegroundColor Cyan
+Write-Host "               S H A R E  " -NoNewline -ForegroundColor Cyan
+Write-Host "-  C L I" -NoNewline -ForegroundColor White
+Write-Host "              $V" -ForegroundColor Cyan
+Write-Host "$V" -NoNewline -ForegroundColor Cyan
+Write-Host "         Hizli Baslatici v3.0 (Windows)" -NoNewline -ForegroundColor DarkGray
+Write-Host "         $V" -ForegroundColor Cyan
+Write-Host "$V                                                $V" -ForegroundColor Cyan
+Write-Host "$BL$hline$BR2" -ForegroundColor Cyan
+Write-Host ""
+
+# DoSy All klasorunu masaustunde olustur
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 if ([string]::IsNullOrEmpty($desktopPath)) {
     # Fallback: OneDrive veya doğrudan Desktop
@@ -34,22 +58,22 @@ if ([string]::IsNullOrEmpty($desktopPath)) {
 $dosyAllDir = Join-Path $desktopPath "DoSy All"
 if (-not (Test-Path $dosyAllDir)) {
     New-Item -ItemType Directory -Path $dosyAllDir -Force | Out-Null
-    Write-Host "[/] DoSy All klasörü oluşturuldu: $dosyAllDir" -ForegroundColor Green
+    ok "DoSy All klasoru olusturuldu"
 }
 else {
-    Write-Host "[/] DoSy All klasörü hazır: $dosyAllDir" -ForegroundColor Green
+    ok "DoSy All klasoru hazir"
 }
-Write-Host "   Paylaşmak istediğiniz dosyaları bu klasöre atın!" -ForegroundColor Cyan
+dim $dosyAllDir
+dim "Paylasmak istediginiz dosyalari bu klasore atin!"
 Write-Host ""
 
-
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "[!] Node.js bulunamadi. Otomatik kuruluyor..." -ForegroundColor Yellow
+    warn "Node.js bulunamadi. Otomatik kuruluyor..."
     $nodeInstalled = $false
 
-    # Yontem 1: winget (Windows 10/11'de genellikle hazir)
+    # Yontem 1: winget
     if (-not $nodeInstalled -and (Get-Command winget -ErrorAction SilentlyContinue)) {
-        Write-Host "[*] winget ile Node.js LTS kuruluyor..." -ForegroundColor Cyan
+        nfo "winget ile Node.js LTS kuruluyor..."
         try {
             winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
             $env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
@@ -57,59 +81,74 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
         } catch { }
     }
 
-    # Yontem 2: Resmi MSI'yi indirip kur
+    # Yontem 2: Resmi MSI
     if (-not $nodeInstalled) {
         try {
-            Write-Host "[v] Node.js indiriliyor, lutfen bekleyin..." -ForegroundColor Cyan
+            nfo "Node.js indiriliyor, lutfen bekleyin..."
             $arch = if ([System.Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
             $releases = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -UseBasicParsing
             $ltsVer = ($releases | Where-Object { $_.lts -ne $false } | Select-Object -First 1).version
             $msiUrl = "https://nodejs.org/dist/$ltsVer/node-$ltsVer-$arch.msi"
             $msiPath = Join-Path $env:TEMP "nodejs-setup.msi"
             Invoke-WebRequest -Uri $msiUrl -OutFile $msiPath -UseBasicParsing
-            Write-Host "[~] Node.js kuruluyor (UAC onay penceresi acilabilir, Evet'e basin)..." -ForegroundColor Cyan
+            nfo "Node.js kuruluyor (UAC onay penceresi acilabilir)..."
             Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /norestart" -Verb RunAs -Wait
             $env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
             if (Get-Command node -ErrorAction SilentlyContinue) { $nodeInstalled = $true }
         } catch {
-            Write-Host "[X] Otomatik kurulum basarisiz: $($_.Exception.Message)" -ForegroundColor Red
+            err "Otomatik kurulum basarisiz: $($_.Exception.Message)"
         }
     }
 
     if (-not $nodeInstalled) {
-        Write-Host "[X] Node.js kurulamadi. Manuel kurun: https://nodejs.org" -ForegroundColor Red
+        err "Node.js kurulamadi. Manuel kurun: https://nodejs.org"
         Exit
     }
-    Write-Host "[+] Node.js basariyla kuruldu!" -ForegroundColor Green
+    ok "Node.js basariyla kuruldu!"
 }
 
-$tempFolder = [System.IO.Path]::GetTempPath()
-$tmpDirName = Join-Path $tempFolder "share-cli-$(Get-Random)"
-$tmpDir = New-Item -ItemType Directory -Path $tmpDirName
-Set-Location $tmpDir.FullName
+# Kalici cache dizini (her seferinde npm install yapmaz)
+$cacheDir = Join-Path $env:USERPROFILE ".share-cli-cache"
+if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+Set-Location $cacheDir
 
-Write-Host "[*] Bagimliliklar hazirlaniyor..." -ForegroundColor Cyan
-cmd /c "npm init -y" 2>&1 | Out-Null
-cmd /c "npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel --silent --no-fund --no-audit" 2>&1 | Out-Null
+# Bagimliliklari sadece yoksa kur
+$expressPath = Join-Path $cacheDir "node_modules\express"
+$tunnelPath = Join-Path $cacheDir "node_modules\localtunnel"
+if (-not (Test-Path $expressPath) -or -not (Test-Path $tunnelPath)) {
+    nfo "Bagimliliklar kuruluyor (ilk calistirma)..."
+    cmd /c "npm init -y" 2>&1 | Out-Null
+    cmd /c "npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel --silent --no-fund --no-audit" 2>&1 | Out-Null
+} else {
+    ok "Bagimliliklar hazir (cache)"
+}
 
 $serverRunning = $false
 try {
     $null = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
     $serverRunning = $true
-    Write-Host "[+] Mevcut sunucu tespit edildi (localhost:3000)" -ForegroundColor Green
+    ok "Mevcut sunucu tespit edildi (localhost:3000)"
 }
 catch {
     $serverRunning = $false
 }
 
 if (-not $serverRunning) {
-    Write-Host "[@] Sunucu baslatiliyor..." -ForegroundColor Yellow
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(Get-Random)" -OutFile "server.js" -UseBasicParsing
+    nfo "Sunucu baslatiliyor..."
     New-Item -ItemType Directory -Force -Path "public" | Out-Null
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html?v=$(Get-Random)" -OutFile "public\index.html" -UseBasicParsing
+    # Dosyalari indir (yoksa veya 1 gunden eskiyse)
+    $needServer = $true
+    if (Test-Path "server.js") {
+        $sAge = (Get-Date) - (Get-Item "server.js").LastWriteTime
+        if ($sAge.TotalSeconds -lt 86400) { $needServer = $false }
+    }
+    if ($needServer) {
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(Get-Random)" -OutFile "server.js" -UseBasicParsing
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html?v=$(Get-Random)" -OutFile "public\index.html" -UseBasicParsing
+    }
     
     if (-not (Test-Path "server.js")) {
-        Write-Host "[X] server.js indirilemedi. Internet baglantinizi kontrol edin." -ForegroundColor Red
+        err "server.js indirilemedi. Internet baglantinizi kontrol edin."
         Exit
     }
 
@@ -121,25 +160,32 @@ if (-not $serverRunning) {
         Start-Process -FilePath "node" -ArgumentList "server.js --dir `"$dosyAllDir`"" -RedirectStandardOutput "server.log" -RedirectStandardError "server.err" -NoNewWindow
     }
     
-    Write-Host "[...] Sunucu bekleniyor" -NoNewline -ForegroundColor Cyan
+    Write-Host "  " -NoNewline
+    Write-Host "[$DOT]" -NoNewline -ForegroundColor Cyan
+    Write-Host " Sunucu bekleniyor" -NoNewline
     for ($i = 1; $i -le 15; $i++) {
         Write-Host "." -NoNewline
         Start-Sleep -Seconds 1
         try {
             $check = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
-            Write-Host "`n[+] Sunucu basariyla baslatildi!" -ForegroundColor Green
+            Write-Host ""
+            ok "Sunucu basariyla baslatildi!"
             $serverRunning = $true
-            
-            Write-Host "[...] Dis baglanti (Tunel) adresi aliniyor" -NoNewline -ForegroundColor Cyan
+
+            Write-Host "  " -NoNewline
+            Write-Host "[$DOT]" -NoNewline -ForegroundColor Cyan
+            Write-Host " Tunel adresi aliniyor" -NoNewline
             for ($j = 1; $j -le 10; $j++) {
                 try {
                     $json = $check.Content | ConvertFrom-Json
                     if ($null -ne $json.tunnelUrl -and $json.tunnelUrl -ne "") {
-                        Write-Host "`n[+] Tunel hazir: $($json.tunnelUrl)" -ForegroundColor Green
+                        Write-Host ""
+                        ok "Tunel hazir: $($json.tunnelUrl)"
                         break
                     }
                     if ($null -ne $json.tunnelError -and $json.tunnelError -ne "") {
-                        Write-Host "`n[X] Tunel hatasi: $($json.tunnelError)" -ForegroundColor Red
+                        Write-Host ""
+                        err "Tunel hatasi: $($json.tunnelError)"
                         break
                     }
                     $check = Invoke-WebRequest -Uri "http://localhost:3000/api/info" -Method Get -UseBasicParsing -ErrorAction Stop
@@ -149,30 +195,33 @@ if (-not $serverRunning) {
                 Start-Sleep -Seconds 1
             }
             Write-Host ""
-            
+
             break
         }
         catch {
             # Bekliyor
         }
     }
-    
+
     if (-not $serverRunning) {
-        Write-Host "`n[X] Sunucu baslatilamadi." -ForegroundColor Red
+        Write-Host ""
+        err "Sunucu baslatilamadi."
         Exit
     }
 }
 
-Write-Host "[v] CLI araci indiriliyor..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(Get-Random)" -OutFile "share-cli.js" -UseBasicParsing
+# CLI aracini her zaman guncelden indir
+$cliFile = "share-cli.js"
+nfo "CLI araci guncelleniyor..."
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(Get-Random)" -OutFile $cliFile -UseBasicParsing
 
-if (Test-Path "share-cli.js") {
-    Write-Host "[+] Baslatiliyor..." -ForegroundColor Green
-    Start-Sleep -Seconds 1
-    node share-cli.js
+if (Test-Path $cliFile) {
+    ok "Baslatiliyor..."
+    Write-Host ""
+    node $cliFile
 }
 else {
-    Write-Host "[X] CLI araci indirilemedi." -ForegroundColor Red
+    err "CLI araci indirilemedi. Internet baglantinizi kontrol edin."
 }
 
-Write-Host "[+] Islem tamamlandi." -ForegroundColor Green
+ok "Islem tamamlandi."

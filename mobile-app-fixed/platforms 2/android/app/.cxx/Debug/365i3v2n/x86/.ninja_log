@@ -1,0 +1,48 @@
+# ninja log v5
+0	351	1771575056131136050	CMakeFiles/nodejs-mobile-cordova-native-lib.dir/native-lib.cpp.o	dda28b38568deb8f
+1	430	1771575056209281170	CMakeFiles/nodejs-mobile-cordova-native-lib.dir/cordova-bridge.cpp.o	73bf9f486b47b047
+430	493	1771575056274781191	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	79	1771575083895107865	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	106	1771575145388967507	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	92	1771575215396094859	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+4	83	1771575398973966437	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+6	104	1771575450412330466	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	83	1771575507954274783	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	82	1771575614612716576	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+6	106	1771575676684091518	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+4	79	1771575906968850958	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	100	1771576028820867997	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+2	75	1771576310967500497	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	75	1771576735096645939	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	94	1771576934080886787	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	88	1771577214769934837	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+2	82	1771577721944622735	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+2	80	1771577973812912647	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	79	1771578173489239326	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+2	84	1771578363890611805	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+4	184	1771578450125576320	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+2	84	1771578523859766126	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	98	1771578828298348728	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	208	1771578977015647650	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	85	1771579273131060596	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+0	7	0	clean	ac69a3158b9a925
+3	587	1771579545506810995	CMakeFiles/nodejs-mobile-cordova-native-lib.dir/native-lib.cpp.o	dda28b38568deb8f
+3	675	1771579545592969134	CMakeFiles/nodejs-mobile-cordova-native-lib.dir/cordova-bridge.cpp.o	73bf9f486b47b047
+676	753	1771579545674520316	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	105	1771579759668630442	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	81	1771580070881533998	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	92	1771580320102560371	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	88	1771582901202816112	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	146	1771583067721473848	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	94	1771602416458886555	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	113	1771625318134395400	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+4	106	1771627674575544834	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+0	5	0	clean	ac69a3158b9a925
+3	513	1771628707840492003	CMakeFiles/nodejs-mobile-cordova-native-lib.dir/native-lib.cpp.o	dda28b38568deb8f
+3	619	1771628707945720144	CMakeFiles/nodejs-mobile-cordova-native-lib.dir/cordova-bridge.cpp.o	73bf9f486b47b047
+619	692	1771628708021182156	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	93	1771628892930557391	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+3	118	1771630245826915377	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+2	87	1771631759661376370	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+5	118	1772446454901773110	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69
+4	137	1772447398369002762	/Users/yalcindegirmenci/Desktop/dosya paylaş/mobile-app-fixed/platforms/android/app/build/intermediates/cxx/Debug/365i3v2n/obj/x86/libnodejs-mobile-cordova-native-lib.so	5645fd62dff43f69

@@ -11,25 +11,37 @@ const command = args[0];
 
 // Help Menu
 if (!command || command === '--help' || command === '-h') {
+    const R = '\x1b[0m', B = '\x1b[1m';
+    const C = '\x1b[36m', GR = '\x1b[90m';
+    const BG = '\x1b[92m', BC = '\x1b[96m', BY = '\x1b[93m', BW = '\x1b[97m';
+    const h = '\u2550', v = '\u2551';
+
     console.log(`
-[>>] SHARE-CLI: Dosya Paylaş Terminal Aracı
----------------------------------------
-Kullanım:
-  npx share-cli <komut> [parametreler]
-
-Komutlar:
-  connect <url>     -> Sunucuya bağlanır (Lokal veya Tunnel URL)
-  list              -> Sunucudaki dosyaları listeler
-  upload <dosya>    -> Sunucuya dosya yükler
-  download <isim>   -> Sunucudan dosya indirir
-  status            -> Mevcut bağlantı durumunu gösterir
-  chat              -> Terminal üzerinden sohbet odasına katılır
-
-Örnek:
-  npx share-cli connect http://xyz.loca.lt
-  npx share-cli list
-  npx share-cli upload resim.jpg
-    `);
+${C}\u2554${h.repeat(48)}\u2557${R}
+${C}${v}${R}                                                ${C}${v}${R}
+${C}${v}${R}   ${B}${BC}S H A R E  ${BW}-  C L I${R}   ${GR}v1.0${R}           ${C}${v}${R}
+${C}${v}${R}   ${GR}Dosya Paylasim Terminal Araci${R}               ${C}${v}${R}
+${C}${v}${R}                                                ${C}${v}${R}
+${C}\u2560${h.repeat(48)}\u2563${R}
+${C}${v}${R}                                                ${C}${v}${R}
+${C}${v}${R}  ${B}${BW}Kullanim:${R}                                    ${C}${v}${R}
+${C}${v}${R}    npx share-cli <komut> [parametreler]        ${C}${v}${R}
+${C}${v}${R}                                                ${C}${v}${R}
+${C}${v}${R}  ${B}${BW}Komutlar:${R}                                    ${C}${v}${R}
+${C}${v}${R}    ${BG}connect${R} <url>    Sunucuya baglanir          ${C}${v}${R}
+${C}${v}${R}    ${BG}list${R}             Dosyalari listeler         ${C}${v}${R}
+${C}${v}${R}    ${BG}upload${R}  <dosya>  Dosya yukler               ${C}${v}${R}
+${C}${v}${R}    ${BG}download${R} <isim>  Dosya indirir              ${C}${v}${R}
+${C}${v}${R}    ${BG}status${R}           Baglanti durumunu gosterir ${C}${v}${R}
+${C}${v}${R}    ${BG}chat${R}             Sohbet odasina katilir     ${C}${v}${R}
+${C}${v}${R}                                                ${C}${v}${R}
+${C}${v}${R}  ${B}${BW}Ornek:${R}                                       ${C}${v}${R}
+${C}${v}${R}    ${BY}npx share-cli connect http://xyz.loca.lt${R}   ${C}${v}${R}
+${C}${v}${R}    ${BY}npx share-cli list${R}                          ${C}${v}${R}
+${C}${v}${R}    ${BY}npx share-cli upload resim.jpg${R}              ${C}${v}${R}
+${C}${v}${R}                                                ${C}${v}${R}
+${C}\u255A${h.repeat(48)}\u255D${R}
+`);
     process.exit(0);
 }
 
@@ -95,37 +107,53 @@ async function request(method, path, data = null, isDownload = false) {
     });
 }
 
+// Color helpers for pkg CLI
+const _R = '\x1b[0m', _B = '\x1b[1m';
+const _GR = '\x1b[90m', _BG = '\x1b[92m', _BR = '\x1b[91m', _BC = '\x1b[96m', _BY = '\x1b[93m';
+const _sh = '\u2500', _dot = '\u00B7';
+
+function _ok(t) { console.log(`  ${_BG}${_B}[+]${_R} ${t}`); }
+function _err(t) { console.log(`  ${_BR}${_B}[X]${_R} ${t}`); }
+function _info(t) { console.log(`  ${_BC}${_B}[${_dot}]${_R} ${t}`); }
+
 // Command Logic
 async function run() {
     try {
         switch (command) {
             case 'connect':
                 const newUrl = args[1];
-                if (!newUrl) return console.log('[X] Hata: URL belirtilmedi.');
+                if (!newUrl) return _err('URL belirtilmedi.');
                 config.apiBase = newUrl.endsWith('/') ? newUrl.slice(0, -1) : newUrl;
                 saveConfig(config);
-                console.log(`[+] Bağlantı kuruldu: ${config.apiBase}`);
+                _ok(`Baglanti kuruldu: ${config.apiBase}`);
                 break;
 
             case 'status':
-                console.log(`[~] Mevcut Sunucu: ${config.apiBase}`);
+                console.log(`\n  ${_BY}Sunucu ${_GR}${_dot}${_dot}${_R} ${config.apiBase}\n`);
                 break;
 
             case 'list':
                 const files = await request('GET', '/api/files');
-                console.log('\n[/] Sunucudaki Dosyalar:');
-                console.log('-----------------------');
-                if (files.length === 0) console.log('Boş.');
-                files.forEach(f => console.log(`- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)`));
+                console.log('');
+                console.log(`  ${_B}SUNUCUDAKI DOSYALAR${_R}`);
+                console.log(`  ${_GR}${_sh.repeat(44)}${_R}`);
+                if (files.length === 0) { console.log(`  ${_GR}Bos.${_R}`); }
+                else {
+                    files.forEach((f, i) => {
+                        const num = (i + 1).toString().padStart(2);
+                        const size = f.size >= 1048576 ? (f.size / 1024 / 1024).toFixed(2) + " MB" : (f.size / 1024).toFixed(1) + " KB";
+                        console.log(`  ${_BG}${num}${_R}  ${f.name} ${_GR}(${size})${_R}`);
+                    });
+                }
                 console.log('');
                 break;
 
             case 'download':
                 const fileName = args[1];
-                if (!fileName) return console.log('[X] Hata: Dosya ismi belirtilmedi.');
-                console.log(`[...] İndiriliyor: ${fileName}...`);
+                if (!fileName) return _err('Dosya ismi belirtilmedi.');
+                _info(`Indiriliyor: ${fileName}...`);
                 const res = await request('GET', `/api/download/${encodeURIComponent(fileName)}`, null, true);
-                if (res.statusCode !== 200) return console.log('[X] Hata: Dosya bulunamadı.');
+                if (res.statusCode !== 200) return _err('Dosya bulunamadi.');
 
                 let downloadsDir;
                 if (process.env.PREFIX && process.env.PREFIX.includes('com.termux')) {
@@ -150,14 +178,17 @@ async function run() {
 
                 const fileStream = fs.createWriteStream(filePath);
                 res.pipe(fileStream);
-                fileStream.on('finish', () => console.log(`[+] İndirilenler klasörüne tamamlandı:\n   ${filePath}`));
+                fileStream.on('finish', () => {
+                    _ok('Basariyla indirildi:');
+                    console.log(`  ${_GR}    ${filePath}${_R}`);
+                });
                 break;
 
             case 'upload':
                 const uploadPath = args[1];
-                if (!uploadPath || !fs.existsSync(uploadPath)) return console.log('[X] Hata: Geçersiz dosya yolu.');
+                if (!uploadPath || !fs.existsSync(uploadPath)) return _err('Gecersiz dosya yolu.');
 
-                console.log(`[...] Yükleniyor: ${path.basename(uploadPath)}...`);
+                _info(`Yukleniyor: ${path.basename(uploadPath)}...`);
 
                 // Form-data manual construction for zero dependencies
                 const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
@@ -179,7 +210,7 @@ async function run() {
                     }
                 }, (res) => {
                     res.on('data', () => { });
-                    res.on('end', () => console.log(`[+] Yüklendi: ${filename}`));
+                    res.on('end', () => _ok(`Yuklendi: ${filename}`));
                 });
 
                 upReq.write(header);
@@ -195,8 +226,9 @@ async function run() {
                 const readline = require('readline');
                 const username = os.userInfo().username || 'CLI-User';
 
-                console.log(`\n["] Chat Odasına Bağlanıldı (Kullanıcı: ${username})`);
-                console.log('Çıkmak için Ctrl+C veya "exit" yazın\n-----------------------------------');
+                console.log(`\n  ${_B}${_BC}CHAT ODASI${_R} ${_GR}(Kullanici: ${username})${_R}`);
+                console.log(`  ${_GR}Cikmak icin Ctrl+C veya "exit" yazin${_R}`);
+                console.log(`  ${_GR}${_sh.repeat(40)}${_R}\n`);
 
                 const rl = readline.createInterface({
                     input: process.stdin,
@@ -218,7 +250,7 @@ async function run() {
                                 const m = msgs[i];
                                 const time = new Date(m.timestamp).toLocaleTimeString();
                                 if (m.sender !== username) {
-                                    console.log(`[${time}] ${m.sender}: ${m.text}`);
+                                    console.log(`  ${_BC}[${time}] ${m.sender}:${_R} ${m.text}`);
                                 }
                             }
                             lastMsgCount = msgs.length;
@@ -236,7 +268,7 @@ async function run() {
                     lastMsgCount = initialMsgs.length;
                     for (let m of initialMsgs) {
                         const time = new Date(m.timestamp).toLocaleTimeString();
-                        console.log(`[${time}] ${m.sender}: ${m.text}`);
+                        console.log(`  ${_BC}[${time}] ${m.sender}:${_R} ${m.text}`);
                     }
                 } catch (e) { }
 
@@ -252,16 +284,14 @@ async function run() {
                     if (text) {
                         try {
                             await request('POST', '/api/chat', { sender: username, text });
-                            // The typed text is already on the terminal from readline, 
-                            // we just wait for the next prompt.
                         } catch (e) {
-                            console.log('[X] Gönderilemedi:', e.message);
+                            _err(`Gonderilemedi: ${e.message}`);
                         }
                     }
                     rl.prompt();
                 }).on('close', () => {
                     isPolling = false;
-                    console.log('\n[-] Chat odasından ayrıldınız.');
+                    console.log(`\n  ${_BY}[!]${_R} Chat odasindan ayrildiniz.\n`);
                     process.exit(0);
                 });
 
@@ -270,10 +300,10 @@ async function run() {
                 break;
 
             default:
-                console.log('[X] Bilinmeyen komut. Yardım için --help kullanın.');
+                _err('Bilinmeyen komut. Yardim icin --help kullanin.');
         }
     } catch (e) {
-        console.error('[X] Bir hata oluştu:', e.message);
+        _err(`Bir hata olustu: ${e.message}`);
     }
 }
 
