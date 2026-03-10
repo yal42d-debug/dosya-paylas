@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-echo "🚀 Dosya Paylaşım Sunucusu Kuruluyor..."
+echo "[>>] Dosya Paylaşım Sunucusu Kuruluyor..."
 
 # 1. Gerekli paketleri yükle
 pkg update -y
@@ -19,10 +19,10 @@ cd ~/dosya-paylasim
 # Şimdilik örnek dosya varmış gibi devam ediyoruz.
 
 if [ -f ~/storage/downloads/dosya-share-app.zip ]; then
-    echo "📦 İndirilen dosya bulundu, açılıyor..."
+    echo "[*] İndirilen dosya bulundu, açılıyor..."
     unzip -o ~/storage/downloads/dosya-share-app.zip -d .
 else
-    echo "⚠️ 'dosya-share-app.zip' İndirilenler klasöründe bulunamadı!"
+    echo "[!] 'dosya-share-app.zip' İndirilenler klasöründe bulunamadı!"
     echo "Lütfen bilgisayarınızdaki sunucudan 'Clone to Phone' diyerek indirin."
     exit 1
 fi
@@ -35,13 +35,13 @@ mkdir -p ~/.shortcuts
 cat <<EOF > ~/.shortcuts/DosyaPaylas
 #!/data/data/com.termux/files/usr/bin/bash
 cd ~/dosya-paylasim
-echo "🚀 Sunucu Başlatılıyor..."
+echo "[>>] Sunucu Başlatılıyor..."
 node server.js
 EOF
 
 chmod +x ~/.shortcuts/DosyaPaylas
 
 echo "---------------------------------------------------"
-echo "✅ Kurulum Tamamlandı!"
-echo "📱 Ana ekranınıza Widget ekleyerek 'DosyaPaylas' butonuna basabilirsiniz."
+echo "[+] Kurulum Tamamlandı!"
+echo "[>] Ana ekranınıza Widget ekleyerek 'DosyaPaylas' butonuna basabilirsiniz."
 echo "---------------------------------------------------"
