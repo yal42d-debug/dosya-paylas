@@ -478,7 +478,7 @@ async function startLocalServer() {
 
 // --- CONNECT TO ANOTHER SERVER ---
 async function handleConnect() {
-    console.log(`\n${colors.bright}${colors.cyan}[&] SUNUCUYA BAĞLANMA${colors.reset}`);
+    console.log(`\n${colors.bright}${colors.cyan}[<>] SUNUCUYA BAĞLANMA${colors.reset}`);
     console.log(`${colors.dim}Mevcut bağlantı: ${config.apiBase}${colors.reset}\n`);
     console.log(`${colors.green}1.${colors.reset} Yerel ağdaki sunucuya bağlan (IP:Port)`);
     console.log(`${colors.green}2.${colors.reset} Uzak sunucuya bağlan (Tünel URL)`);
@@ -551,7 +551,7 @@ async function handleTunnel() {
 
     try {
         const status = await request('GET', '/api/tunnel/status');
-        console.log(`\n${colors.bright}${colors.cyan}[@] TÜNEL YÖNETİMİ${colors.reset}`);
+        console.log(`\n${colors.bright}${colors.cyan}[~~] TÜNEL YÖNETİMİ${colors.reset}`);
         if (status.running && status.url) {
             console.log(`${colors.green}Durum: Aktif [+]${colors.reset}`);
             console.log(`${colors.white}URL: ${status.url}${colors.reset}`);
@@ -625,7 +625,7 @@ async function printBanner() {
     console.log(`║   [>>] SHARE-CLI TERMINAL ARAYÜZÜ v3.0    ║`);
     console.log(`╚══════════════════════════════════════════╝${colors.reset}`);
     console.log(`${statusColor}${statusIcon} Durum: ${statusText}${colors.reset}   ${colors.dim}${modeDesc}${colors.reset}`);
-    console.log(`${colors.yellow}[&] Sunucu:${colors.reset}  ${config.apiBase}`);
+    console.log(`${colors.yellow}[<>] Sunucu:${colors.reset}  ${config.apiBase}`);
 
     if (serverInfo) {
         const localUrl = serverInfo.localUrl || serverInfo.url || '';
@@ -677,12 +677,12 @@ async function mainMenu() {
             console.log(`${colors.dim}2. Dosya İndir (bağlantı gerekli)${colors.reset}`);
             console.log(`${colors.dim}3. Dosya Yükle (bağlantı gerekli)${colors.reset}`);
         }
-        console.log(`${colors.blue}4.${colors.reset} [&] Sunucuya Bağlan / Kendi Sunucunu Başlat`);
+        console.log(`${colors.blue}4.${colors.reset} [<>] Sunucuya Bağlan / Kendi Sunucunu Başlat`);
         if (isLocalServer) {
-            console.log(`${colors.blue}5.${colors.reset} [@] Tünel Yönetimi (Dış Erişim Aç/Kapa)`);
+            console.log(`${colors.blue}5.${colors.reset} [~~] Tünel Yönetimi (Dış Erişim Aç/Kapa)`);
             console.log(`${colors.blue}6.${colors.reset} [/] Paylaşılan Klasörü Değiştir`);
         } else {
-            console.log(`${colors.dim}5. [@] Tünel Yönetimi (kendi sunucunuzda çalışır)${colors.reset}`);
+            console.log(`${colors.dim}5. [~~] Tünel Yönetimi (kendi sunucunuzda çalışır)${colors.reset}`);
             console.log(`${colors.dim}6. [/] Paylaşılan Klasörü Değiştir (kendi sunucunuzda çalışır)${colors.reset}`);
         }
         console.log(`${colors.yellow}7.${colors.reset} [#] Sunucu Bilgileri & QR Kodları`);
