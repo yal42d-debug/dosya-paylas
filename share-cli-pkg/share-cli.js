@@ -12,7 +12,7 @@ const command = args[0];
 // Help Menu
 if (!command || command === '--help' || command === '-h') {
     console.log(`
-🚀 SHARE-CLI: Dosya Paylaş Terminal Aracı
+[>>] SHARE-CLI: Dosya Paylaş Terminal Aracı
 ---------------------------------------
 Kullanım:
   npx share-cli <komut> [parametreler]
@@ -101,19 +101,19 @@ async function run() {
         switch (command) {
             case 'connect':
                 const newUrl = args[1];
-                if (!newUrl) return console.log('❌ Hata: URL belirtilmedi.');
+                if (!newUrl) return console.log('[HATA] Hata: URL belirtilmedi.');
                 config.apiBase = newUrl.endsWith('/') ? newUrl.slice(0, -1) : newUrl;
                 saveConfig(config);
-                console.log(`✅ Bağlantı kuruldu: ${config.apiBase}`);
+                console.log(`[OK] Bağlantı kuruldu: ${config.apiBase}`);
                 break;
 
             case 'status':
-                console.log(`📡 Mevcut Sunucu: ${config.apiBase}`);
+                console.log(`[~] Mevcut Sunucu: ${config.apiBase}`);
                 break;
 
             case 'list':
                 const files = await request('GET', '/api/files');
-                console.log('\n📁 Sunucudaki Dosyalar:');
+                console.log('\n[DIR] Sunucudaki Dosyalar:');
                 console.log('-----------------------');
                 if (files.length === 0) console.log('Boş.');
                 files.forEach(f => console.log(`- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)`));
@@ -122,10 +122,10 @@ async function run() {
 
             case 'download':
                 const fileName = args[1];
-                if (!fileName) return console.log('❌ Hata: Dosya ismi belirtilmedi.');
-                console.log(`⏳ İndiriliyor: ${fileName}...`);
+                if (!fileName) return console.log('[HATA] Hata: Dosya ismi belirtilmedi.');
+                console.log(`[...] İndiriliyor: ${fileName}...`);
                 const res = await request('GET', `/api/download/${encodeURIComponent(fileName)}`, null, true);
-                if (res.statusCode !== 200) return console.log('❌ Hata: Dosya bulunamadı.');
+                if (res.statusCode !== 200) return console.log('[HATA] Hata: Dosya bulunamadı.');
 
                 let downloadsDir;
                 if (process.env.PREFIX && process.env.PREFIX.includes('com.termux')) {
@@ -150,14 +150,14 @@ async function run() {
 
                 const fileStream = fs.createWriteStream(filePath);
                 res.pipe(fileStream);
-                fileStream.on('finish', () => console.log(`✅ İndirilenler klasörüne tamamlandı:\n   ${filePath}`));
+                fileStream.on('finish', () => console.log(`[OK] İndirilenler klasörüne tamamlandı:\n   ${filePath}`));
                 break;
 
             case 'upload':
                 const uploadPath = args[1];
-                if (!uploadPath || !fs.existsSync(uploadPath)) return console.log('❌ Hata: Geçersiz dosya yolu.');
+                if (!uploadPath || !fs.existsSync(uploadPath)) return console.log('[HATA] Hata: Geçersiz dosya yolu.');
 
-                console.log(`⏳ Yükleniyor: ${path.basename(uploadPath)}...`);
+                console.log(`[...] Yükleniyor: ${path.basename(uploadPath)}...`);
 
                 // Form-data manual construction for zero dependencies
                 const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
@@ -179,7 +179,7 @@ async function run() {
                     }
                 }, (res) => {
                     res.on('data', () => { });
-                    res.on('end', () => console.log(`✅ Yüklendi: ${filename}`));
+                    res.on('end', () => console.log(`[OK] Yüklendi: ${filename}`));
                 });
 
                 upReq.write(header);
@@ -195,7 +195,7 @@ async function run() {
                 const readline = require('readline');
                 const username = os.userInfo().username || 'CLI-User';
 
-                console.log(`\n💬 Chat Odasına Bağlanıldı (Kullanıcı: ${username})`);
+                console.log(`\n[MSG] Chat Odasına Bağlanıldı (Kullanıcı: ${username})`);
                 console.log('Çıkmak için Ctrl+C veya "exit" yazın\n-----------------------------------');
 
                 const rl = readline.createInterface({
@@ -255,13 +255,13 @@ async function run() {
                             // The typed text is already on the terminal from readline, 
                             // we just wait for the next prompt.
                         } catch (e) {
-                            console.log('❌ Gönderilemedi:', e.message);
+                            console.log('[HATA] Gönderilemedi:', e.message);
                         }
                     }
                     rl.prompt();
                 }).on('close', () => {
                     isPolling = false;
-                    console.log('\n🔴 Chat odasından ayrıldınız.');
+                    console.log('\n[-] Chat odasından ayrıldınız.');
                     process.exit(0);
                 });
 
@@ -270,10 +270,10 @@ async function run() {
                 break;
 
             default:
-                console.log('❌ Bilinmeyen komut. Yardım için --help kullanın.');
+                console.log('[HATA] Bilinmeyen komut. Yardım için --help kullanın.');
         }
     } catch (e) {
-        console.error('❌ Bir hata oluştu:', e.message);
+        console.error('[HATA] Bir hata oluştu:', e.message);
     }
 }
 

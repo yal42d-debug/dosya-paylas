@@ -45,9 +45,9 @@ if (dirArgIndex !== -1 && process.argv[dirArgIndex + 1]) {
 if (!fs.existsSync(UPLOAD_DIR)) {
   try {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    console.log(`📁 Klasör oluşturuldu: ${UPLOAD_DIR}`);
+    console.log(`[DIR] Klasör oluşturuldu: ${UPLOAD_DIR}`);
   } catch (e) {
-    console.error(`❌ Klasör oluşturulamadı: ${e.message}`);
+    console.error(`[HATA] Klasör oluşturulamadı: ${e.message}`);
     // Fallback to local uploads if Desktop is not accessible
     if (UPLOAD_DIR !== path.join(__dirname, 'uploads')) {
       UPLOAD_DIR = path.join(__dirname, 'uploads');
@@ -148,7 +148,7 @@ app.post('/api/set-dir', (req, res) => {
   }
 
   UPLOAD_DIR = newDir;
-  console.log(`📂 Paylaşılan klasör değiştirildi: ${UPLOAD_DIR}`);
+  console.log(`[DIR] Paylaşılan klasör değiştirildi: ${UPLOAD_DIR}`);
   res.json({ message: 'Success', shareDir: UPLOAD_DIR });
 });
 
@@ -248,7 +248,7 @@ app.post('/api/tunnel/start', async (req, res) => {
       new Promise((_, reject) => setTimeout(() => reject(new Error('Tünel bağlantısı zaman aşımına uğradı (10s)')), 10000))
     ]);
     tunnel.on('error', (err) => {
-      console.error('❌ Tünel hatası:', err.message);
+      console.error('[HATA] Tünel hatası:', err.message);
       currentTunnelUrl = null;
       tunnelError = err.message;
     });
@@ -275,7 +275,7 @@ app.post('/api/shutdown', (req, res) => {
 async function startServer() {
   // Global error handlers to prevent process crash
   process.on('uncaughtException', (err) => {
-    console.error('❌ Beklenmeyen Hata (Process):', err.message);
+    console.error('[HATA] Beklenmeyen Hata (Process):', err.message);
     if (err.message.includes('localtunnel')) {
       currentTunnelUrl = null;
       tunnelError = err.message;
@@ -283,11 +283,11 @@ async function startServer() {
   });
 
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Beklenmeyen Rejection (Process):', reason);
+    console.error('[HATA] Beklenmeyen Rejection (Process):', reason);
   });
 
   app.listen(PORT, '0.0.0.0', async () => {
-    console.log('📡 Tünel/Dış Bağlantı başlatılıyor (localtunnel)...');
+    console.log('[~] Tünel/Dış Bağlantı başlatılıyor (localtunnel)...');
 
     async function attemptTunnel(retries = 2) {
       for (let i = 0; i < retries; i++) {
@@ -318,23 +318,23 @@ async function startServer() {
           if (i < retries - 1) await new Promise(r => setTimeout(r, 2000));
         }
       }
-      console.log('ℹ️ Tünel başlatılamadı, yerel ağda devam ediliyor.');
+      console.log('[i] Tünel başlatılamadı, yerel ağda devam ediliyor.');
       return false;
     }
 
     // Try to start tunnel, but don't block everything if it fails
     attemptTunnel().catch(err => {
-      console.error('❌ Tünel başlatma sırasında hata:', err.message);
+      console.error('[HATA] Tünel başlatma sırasında hata:', err.message);
     });
 
     console.log('\x1b[36m%s\x1b[0m', '===================================================');
-    console.log('\x1b[32m%s\x1b[0m', '🚀 DOSYA PAYLAŞIM SUNUCUSU AKTİF');
+    console.log('\x1b[32m%s\x1b[0m', '[>>] DOSYA PAYLAŞIM SUNUCUSU AKTİF');
     console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
-    console.log(`📂 Klasör: ${UPLOAD_DIR}`);
-    console.log(`🏠 Yerel Ağ: ${serverUrl}`);
+    console.log(`[DIR] Klasör: ${UPLOAD_DIR}`);
+    console.log(`[LAN] Yerel Ağ: ${serverUrl}`);
     console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
 
-    console.log('\n\x1b[33m%s\x1b[0m', '📲 YEREL AĞ QR KODU (Ev/Ofis İçi):');
+    console.log('\n\x1b[33m%s\x1b[0m', '[QR] YEREL AĞ QR KODU (Ev/Ofis İçi):');
     qrcodeTerminal.generate(serverUrl, { small: true });
 
     console.log('\n\x1b[36m%s\x1b[0m', '---------------------------------------------------\n');
