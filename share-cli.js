@@ -456,11 +456,11 @@ async function startLocalServer() {
         serverProcess = null;
     });
 
-    // Wait for server to be ready (up to 15 seconds)
-    for (let i = 0; i < 15; i++) {
-        process.stdout.write(`\r${colors.yellow}[...] Sunucu bekleniyor... (${i + 1}s)${colors.reset}`);
-        await new Promise(r => setTimeout(r, 1000));
-        const result = await testConnection('http://localhost:3000', 2000);
+    // Wait for server to be ready (up to 10 seconds, 500ms aralıkla)
+    for (let i = 0; i < 20; i++) {
+        process.stdout.write(`\r${colors.yellow}[...] Sunucu bekleniyor... (${((i + 1) * 0.5).toFixed(1)}s)${colors.reset}`);
+        await new Promise(r => setTimeout(r, 500));
+        const result = await testConnection('http://localhost:3000', 1500);
         if (result.success) {
             process.stdout.write(`\r${colors.green}[+] Sunucu başarıyla başlatıldı!            ${colors.reset}\n`);
             console.log(`${colors.green}[/] Paylaşım klasörü: ${DOSY_ALL_DIR}${colors.reset}`);
@@ -591,9 +591,9 @@ async function handleTunnel() {
 async function printBanner() {
     console.clear();
 
-    // Determine connection status
+    // Determine connection status (kısa timeout - menü hızlı açılsın)
     let statusIcon, statusText, statusColor;
-    const result = await testConnection(config.apiBase, 3000);
+    const result = await testConnection(config.apiBase, 1500);
     if (result.success) {
         serverInfo = result.info;
         statusIcon = '[+]';
@@ -647,15 +647,13 @@ async function printBanner() {
 // --- MAIN LOOP ---
 async function mainMenu() {
     // İlk başlatmada: sunucuya bağlıysa DoSy All'ı paylaşım klasörü yap
-    try {
-        const initCheck = await testConnection(config.apiBase, 3000);
-        if (initCheck.success) {
-            await request('POST', '/api/set-dir', { dir: DOSY_ALL_DIR });
-        } else {
-            console.log("\nOtomatik olarak yerel sunucu başlatılıyor...");
-            await startLocalServer();
-        }
-    } catch (e) {
+    const initCheck = await testConnection(config.apiBase, 2000);
+    if (initCheck.success) {
+        serverInfo = initCheck.info;
+        connectionMode = config.apiBase === 'http://localhost:3000' ? 'local-server' :
+            (config.apiBase.includes('loca.lt') || config.apiBase.startsWith('https://')) ? 'remote-tunnel' : 'remote-local';
+        try { await request('POST', '/api/set-dir', { dir: DOSY_ALL_DIR }); } catch (e) { }
+    } else {
         console.log("\nOtomatik olarak yerel sunucu başlatılıyor...");
         await startLocalServer();
     }

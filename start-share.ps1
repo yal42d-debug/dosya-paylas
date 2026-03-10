@@ -83,14 +83,21 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     Write-Host "[+] Node.js basariyla kuruldu!" -ForegroundColor Green
 }
 
-$tempFolder = [System.IO.Path]::GetTempPath()
-$tmpDirName = Join-Path $tempFolder "share-cli-$(Get-Random)"
-$tmpDir = New-Item -ItemType Directory -Path $tmpDirName
-Set-Location $tmpDir.FullName
+# Kalici cache dizini (her seferinde npm install yapmaz)
+$cacheDir = Join-Path $env:USERPROFILE ".share-cli-cache"
+if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+Set-Location $cacheDir
 
-Write-Host "[*] Bagimliliklar hazirlaniyor..." -ForegroundColor Cyan
-cmd /c "npm init -y" 2>&1 | Out-Null
-cmd /c "npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel --silent --no-fund --no-audit" 2>&1 | Out-Null
+# Bagimliliklari sadece yoksa kur
+$expressPath = Join-Path $cacheDir "node_modules\express"
+$tunnelPath = Join-Path $cacheDir "node_modules\localtunnel"
+if (-not (Test-Path $expressPath) -or -not (Test-Path $tunnelPath)) {
+    Write-Host "[*] Bagimliliklar kuruluyor (ilk calistirma)..." -ForegroundColor Cyan
+    cmd /c "npm init -y" 2>&1 | Out-Null
+    cmd /c "npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel --silent --no-fund --no-audit" 2>&1 | Out-Null
+} else {
+    Write-Host "[+] Bagimliliklar hazir (cache)" -ForegroundColor Green
+}
 
 $serverRunning = $false
 try {
@@ -104,9 +111,17 @@ catch {
 
 if (-not $serverRunning) {
     Write-Host "[@] Sunucu baslatiliyor..." -ForegroundColor Yellow
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(Get-Random)" -OutFile "server.js" -UseBasicParsing
     New-Item -ItemType Directory -Force -Path "public" | Out-Null
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html?v=$(Get-Random)" -OutFile "public\index.html" -UseBasicParsing
+    # Dosyalari indir (yoksa veya 1 gunden eskiyse)
+    $needServer = $true
+    if (Test-Path "server.js") {
+        $sAge = (Get-Date) - (Get-Item "server.js").LastWriteTime
+        if ($sAge.TotalSeconds -lt 86400) { $needServer = $false }
+    }
+    if ($needServer) {
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(Get-Random)" -OutFile "server.js" -UseBasicParsing
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html?v=$(Get-Random)" -OutFile "public\index.html" -UseBasicParsing
+    }
     
     if (-not (Test-Path "server.js")) {
         Write-Host "[X] server.js indirilemedi. Internet baglantinizi kontrol edin." -ForegroundColor Red
@@ -163,13 +178,24 @@ if (-not $serverRunning) {
     }
 }
 
-Write-Host "[v] CLI araci indiriliyor..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(Get-Random)" -OutFile "share-cli.js" -UseBasicParsing
+# CLI aracini indir (yoksa veya 1 gunden eskiyse)
+$cliFile = "share-cli.js"
+$needDownload = $true
+if (Test-Path $cliFile) {
+    $fileAge = (Get-Date) - (Get-Item $cliFile).LastWriteTime
+    if ($fileAge.TotalSeconds -lt 86400) {
+        $needDownload = $false
+        Write-Host "[+] CLI araci hazir (cache)" -ForegroundColor Green
+    }
+}
+if ($needDownload) {
+    Write-Host "[v] CLI araci indiriliyor..." -ForegroundColor Cyan
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(Get-Random)" -OutFile $cliFile -UseBasicParsing
+}
 
-if (Test-Path "share-cli.js") {
+if (Test-Path $cliFile) {
     Write-Host "[+] Baslatiliyor..." -ForegroundColor Green
-    Start-Sleep -Seconds 1
-    node share-cli.js
+    node $cliFile
 }
 else {
     Write-Host "[X] CLI araci indirilemedi." -ForegroundColor Red

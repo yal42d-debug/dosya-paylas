@@ -2,13 +2,14 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const QRCode = require('qrcode');
-const qrcodeTerminal = require('qrcode-terminal');
 const cors = require('cors');
-const archiver = require('archiver');
-const localtunnel = require('localtunnel');
 const https = require('https');
 const os = require('os');
+
+// Ağır modüller lazy-load (sunucu hızlı başlasın, ihtiyaç olunca yüklensin)
+let _localtunnel, _qrcodeTerminal;
+function getLocaltunnel() { if (!_localtunnel) _localtunnel = require('localtunnel'); return _localtunnel; }
+function getQrcodeTerminal() { if (!_qrcodeTerminal) _qrcodeTerminal = require('qrcode-terminal'); return _qrcodeTerminal; }
 
 const app = express();
 const PORT = 3000;
@@ -244,7 +245,7 @@ app.post('/api/tunnel/start', async (req, res) => {
   if (currentTunnelUrl) return res.json({ message: 'Already running', url: currentTunnelUrl });
   try {
     const tunnel = await Promise.race([
-      localtunnel({ port: PORT }),
+      getLocaltunnel()({ port: PORT }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Tünel bağlantısı zaman aşımına uğradı (10s)')), 10000))
     ]);
     tunnel.on('error', (err) => {
@@ -295,7 +296,7 @@ async function startServer() {
           tunnelError = null;
           // Set a strict 5-second timeout for localtunnel connection. 
           const tunnel = await Promise.race([
-            localtunnel({ port: PORT }),
+            getLocaltunnel()({ port: PORT }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Localtunnel bağlantısında zaman aşımı (Timeout) yaşandı.')), 8000))
           ]);
 
@@ -335,7 +336,7 @@ async function startServer() {
     console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
 
     console.log('\n\x1b[33m%s\x1b[0m', '[#] YEREL AĞ QR KODU (Ev/Ofis İçi):');
-    qrcodeTerminal.generate(serverUrl, { small: true });
+    getQrcodeTerminal().generate(serverUrl, { small: true });
 
     console.log('\n\x1b[36m%s\x1b[0m', '---------------------------------------------------\n');
   });

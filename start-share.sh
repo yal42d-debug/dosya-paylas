@@ -62,14 +62,19 @@ if ! command -v node &> /dev/null; then
     echo -e "${GREEN}[+] Node.js başarıyla kuruldu!${NC}"
 fi
 
-# Çalışma dizini
-TMP_DIR=$(mktemp -d)
-cd "$TMP_DIR"
+# Kalıcı cache dizini (her seferinde npm install yapmaz)
+CACHE_DIR="$HOME/.share-cli-cache"
+mkdir -p "$CACHE_DIR"
+cd "$CACHE_DIR"
 
-# Bağımlılıkları kur
-echo -e "${BLUE}[*] Bağımlılıklar hazırlanıyor...${NC}"
-npm init -y &> /dev/null
-npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel &> /dev/null
+# Bağımlılıkları sadece yoksa veya eskiyse kur
+if [ ! -d "node_modules/express" ] || [ ! -d "node_modules/localtunnel" ]; then
+    echo -e "${BLUE}[*] Bağımlılıklar kuruluyor (ilk çalıştırma)...${NC}"
+    npm init -y &> /dev/null
+    npm install express multer ip qrcode qrcode-terminal cors archiver localtunnel --silent --no-fund --no-audit &> /dev/null
+else
+    echo -e "${GREEN}[+] Bağımlılıklar hazır (cache)${NC}"
+fi
 
 # Sunucu durumunu kontrol et (mevcut sunucu varsa kullan)
 SERVER_RUNNING=false
@@ -83,10 +88,17 @@ fi
 if [ "$SERVER_RUNNING" = false ]; then
     echo -e "${YELLOW}[@] Sunucu başlatılıyor...${NC}"
     
-    # Dosyaları indir
-    curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(date +%s)" -o "server.js"
+    # Dosyaları indir (yoksa veya 1 günden eskiyse)
     mkdir -p public
-    curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html?v=$(date +%s)" -o "public/index.html"
+    NEED_SERVER=true
+    if [ -f "server.js" ]; then
+        S_AGE=$(( $(date +%s) - $(stat -f%m "server.js" 2>/dev/null || stat -c%Y "server.js" 2>/dev/null || echo 0) ))
+        [ "$S_AGE" -lt 86400 ] && NEED_SERVER=false
+    fi
+    if [ "$NEED_SERVER" = true ]; then
+        curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/server.js?v=$(date +%s)" -o "server.js"
+        curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/public/index.html?v=$(date +%s)" -o "public/index.html"
+    fi
     
     if [ ! -f "server.js" ]; then
         echo -e "${RED}[X] server.js indirilemedi. İnternet bağlantınızı kontrol edin.${NC}"
@@ -133,14 +145,25 @@ if [ "$SERVER_RUNNING" = false ]; then
     fi
 fi
 
-# CLI aracını indir ve çalıştır
-echo -e "${BLUE}[v] CLI aracı indiriliyor...${NC}"
-curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "share-cli.js"
+# CLI aracını indir (sadece yoksa veya 1 günden eskiyse)
+CLI_FILE="share-cli.js"
+NEED_DOWNLOAD=true
+if [ -f "$CLI_FILE" ]; then
+    # Dosya 86400 saniyeden (1 gün) yeniyse indirme
+    FILE_AGE=$(( $(date +%s) - $(stat -f%m "$CLI_FILE" 2>/dev/null || stat -c%Y "$CLI_FILE" 2>/dev/null || echo 0) ))
+    if [ "$FILE_AGE" -lt 86400 ]; then
+        NEED_DOWNLOAD=false
+        echo -e "${GREEN}[+] CLI aracı hazır (cache)${NC}"
+    fi
+fi
+if [ "$NEED_DOWNLOAD" = true ]; then
+    echo -e "${BLUE}[v] CLI aracı indiriliyor...${NC}"
+    curl -sL "https://raw.githubusercontent.com/yal42d-debug/dosya-paylas/main/share-cli.js?v=$(date +%s)" -o "$CLI_FILE"
+fi
 
-if [ -f "share-cli.js" ]; then
+if [ -f "$CLI_FILE" ]; then
     echo -e "${GREEN}[+] Başlatılıyor...${NC}"
-    sleep 1
-    node "share-cli.js" < /dev/tty
+    node "$CLI_FILE" < /dev/tty
 else
     echo -e "${RED}[X] CLI aracı indirilemedi. Lütfen internet bağlantınızı kontrol edin.${NC}"
 fi
