@@ -103,7 +103,7 @@ const B = {
     h: '\u2550', v: '\u2551', ml: '\u2560', mr: '\u2563',
     stl: '\u250C', str: '\u2510', sbl: '\u2514', sbr: '\u2518',
     sh: '\u2500', sv: '\u2502', sml: '\u251C', smr: '\u2524',
-    std: '\u252C', stu: '\u2534',
+    std: '\u252C', stu: '\u2534', sx: '\u253C',
     dot: '\u00B7'
 };
 const W = 52;
