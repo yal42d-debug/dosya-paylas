@@ -19,6 +19,9 @@ const CONFIG_PATH = path.join(process.env.HOME || process.env.USERPROFILE, '.sha
 
 // --- DoSy All KLASÖRÜ ---
 const os = require('os');
+const isWindows = process.platform === 'win32';
+// Windows ANSI terminal desteğini etkinleştir (Windows 10+)
+if (isWindows) { try { process.stdout.write('\x1b[0m'); } catch(e) {} }
 function getDesktopPath() {
     const home = process.env.HOME || process.env.USERPROFILE || os.homedir();
     if (process.platform === 'win32') {
@@ -98,7 +101,14 @@ const rl = readline.createInterface({
 const question = (query) => new Promise((resolve) => rl.question(query, resolve));
 
 // --- UI DRAWING ---
-const B = {
+const B = isWindows ? {
+    tl: '+', tr: '+', bl: '+', br: '+',
+    h: '-', v: '|', ml: '+', mr: '+',
+    stl: '+', str: '+', sbl: '+', sbr: '+',
+    sh: '-', sv: '|', sml: '+', smr: '+',
+    std: '+', stu: '+', sx: '+',
+    dot: '.'
+} : {
     tl: '\u2554', tr: '\u2557', bl: '\u255A', br: '\u255D',
     h: '\u2550', v: '\u2551', ml: '\u2560', mr: '\u2563',
     stl: '\u250C', str: '\u2510', sbl: '\u2514', sbr: '\u2518',
@@ -107,6 +117,12 @@ const B = {
     dot: '\u00B7'
 };
 const W = 52;
+// Menü ikonları - Windows ASCII / macOS Unicode
+const ICO = isWindows ? {
+    list: '=', dl: 'v', ul: '^', chat: '"'
+} : {
+    list: '\u2261', dl: '\u2193', ul: '\u2191', chat: '\u201C'
+};
 
 function stripAnsi(s) { return s.replace(/\x1b\[[0-9;]*m/g, ''); }
 function padR(s, w) { return s + ' '.repeat(Math.max(0, w - stripAnsi(s).length)); }
@@ -131,9 +147,9 @@ function sectionHead(title) {
 
 function menuItem(num, text, color = colors.brightWhite, dimmed = false) {
     if (dimmed) {
-        console.log(`  ${colors.gray} ${num}   ${text}${colors.reset}`);
+        console.log(`${colors.gray}${num}. ${text}${colors.reset}`);
     } else {
-        console.log(`  ${color}${colors.bright} ${num} ${colors.reset}  ${text}`);
+        console.log(`${colors.brightWhite}${num}.${colors.reset} ${text}`);
     }
 }
 
@@ -688,6 +704,7 @@ async function handleTunnel() {
 
 // --- BANNER ---
 async function printBanner() {
+    process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
     console.clear();
 
     // Determine connection status (kısa timeout - menü hızlı açılsın)
@@ -695,7 +712,7 @@ async function printBanner() {
     const result = await testConnection(config.apiBase, 1500);
     if (result.success) {
         serverInfo = result.info;
-        statusText = 'BAGLI';
+        statusText = 'Bağlı';
         statusColor = colors.brightGreen;
 
         // Detect mode
@@ -704,7 +721,7 @@ async function printBanner() {
         else connectionMode = 'remote-local';
     } else {
         serverInfo = null;
-        statusText = 'BAGLANTI YOK';
+        statusText = 'Bağlantı Yok';
         statusColor = colors.brightRed;
         connectionMode = 'disconnected';
     }
@@ -712,47 +729,41 @@ async function printBanner() {
     // Mode description
     let modeDesc, modeIcon;
     switch (connectionMode) {
-        case 'local-server': modeDesc = 'Kendi Sunucum'; modeIcon = '~'; break;
-        case 'remote-local': modeDesc = 'Yerel Ag'; modeIcon = '='; break;
-        case 'remote-tunnel': modeDesc = 'Tunel'; modeIcon = '@'; break;
-        default: modeDesc = 'Bagli Degil'; modeIcon = 'x'; break;
+        case 'local-server': modeDesc = 'Kendi Sunucum (localhost)'; modeIcon = '~'; break;
+        case 'remote-local': modeDesc = 'Yerel Ağ'; modeIcon = '='; break;
+        case 'remote-tunnel': modeDesc = 'Tünel'; modeIcon = '@'; break;
+        default: modeDesc = 'Bağlı Değil'; modeIcon = 'x'; break;
     }
 
-    // -- Title Block --
-    const bc = colors.cyan;
-    boxTop(bc);
-    boxBlank(bc);
-    boxRow(centerStr(`${colors.bright}${colors.brightCyan}S H A R E  ${colors.brightWhite}-  C L I${colors.reset}`, W-4), bc);
-    boxRow(centerStr(`${colors.gray}Dosya Paylasim Terminali v3.0${colors.reset}`, W-4), bc);
-    boxBlank(bc);
-
-    // -- Status Bar --
-    boxMid(bc);
-    const sIcon = connectionMode !== 'disconnected' ? `${statusColor}${colors.bright} + ${colors.reset}` : `${statusColor}${colors.bright} - ${colors.reset}`;
-    const sText = `${statusColor}${colors.bright}${statusText}${colors.reset}`;
-    const mText = `${colors.gray}[${modeIcon}] ${modeDesc}${colors.reset}`;
-    const gap = W - 4 - stripAnsi(sIcon).length - stripAnsi(sText).length - 1 - stripAnsi(mText).length;
-    boxRow(`${sIcon}${sText}${' '.repeat(Math.max(2, gap))}${mText}`, bc);
-
-    // -- Connection Info --
-    boxMid(bc);
-    boxRow(`${colors.brightYellow}Sunucu ${colors.gray}${B.dot}${B.dot}${colors.reset} ${config.apiBase}`, bc);
-
+    // Experimental layout
+    const w = 42;
+    const [bTL, bTR, bBL, bBR, bH, bV] = isWindows
+        ? ['+', '+', '+', '+', '=', '|']
+        : ['\u2554', '\u2557', '\u255A', '\u255D', '\u2550', '\u2551'];
+    console.log(`${colors.brightMagenta}${bTL}${bH.repeat(w)}${bTR}${colors.reset}`);
+    const title = '[>>] SHARE-CLI TERMINAL ARAYUZU v3.0';
+    console.log(`${colors.brightMagenta}${bV}${colors.reset}   ${colors.brightWhite}${title}${colors.reset}   ${colors.brightMagenta}${bV}${colors.reset}`);
+    console.log(`${colors.brightMagenta}${bBL}${bH.repeat(w)}${bBR}${colors.reset}`);
+    
+    const sIcon = connectionMode !== 'disconnected' ? `${statusColor}${colors.bright}[+]${colors.reset}` : `${statusColor}${colors.bright}[X]${colors.reset}`;
+    console.log(`${sIcon} Durum: ${statusText}   ${colors.gray}[${modeIcon}] ${modeDesc}${colors.reset}`);
+    
+    console.log(`${colors.blue}[<>]${colors.reset} Sunucu:  ${config.apiBase}`);
     if (serverInfo) {
         const localUrl = serverInfo.localUrl || serverInfo.url || '';
         const tunnelUrl = serverInfo.tunnelUrl || ((serverInfo.running && serverInfo.url) ? serverInfo.url : null);
         if (localUrl && connectionMode === 'local-server') {
-            boxRow(`${colors.brightYellow}Yerel  ${colors.gray}${B.dot}${B.dot}${colors.reset} ${localUrl}`, bc);
+            console.log(`${colors.brightYellow}[=]${colors.reset} Yerel:   ${localUrl}`);
         }
         if (tunnelUrl) {
-            boxRow(`${colors.brightYellow}Tunel  ${colors.gray}${B.dot}${B.dot}${colors.reset} ${tunnelUrl}`, bc);
+            console.log(`${colors.brightMagenta}[@]${colors.reset} Tünel:   ${tunnelUrl}`);
         }
         if (serverInfo.shareDir) {
-            boxRow(`${colors.brightYellow}Klasor ${colors.gray}${B.dot}${B.dot}${colors.reset} ${serverInfo.shareDir}`, bc);
+            console.log(`${colors.brightCyan}[/]${colors.reset} Klasör:  ${serverInfo.shareDir}`);
         }
     }
-    boxRow(`${colors.brightYellow}DoSyAll${colors.gray}${B.dot}${B.dot}${colors.reset} ${DOSY_ALL_DIR}`, bc);
-    boxBot(bc);
+    console.log(`${colors.brightCyan}[/]${colors.reset} DoSy All: ${DOSY_ALL_DIR}`);
+    console.log(`${colors.gray}${(isWindows ? '-' : '\u2500').repeat(44)}${colors.reset}`);
     console.log('');
 }
 
@@ -776,56 +787,62 @@ async function mainMenu() {
         const isConnected = connectionMode !== 'disconnected';
         const isLocalServer = connectionMode === 'local-server';
 
-        // -- DOSYA ISLEMLERI --
-        sectionHead('DOSYA ISLEMLERI');
+        // -- MENÜ ITEMLERI --
+        console.log(`ANA MENU:`);
         if (isConnected) {
-            menuItem('1', 'Dosyalari Listele', colors.brightGreen);
-            menuItem('2', 'Dosya Indir', colors.brightGreen);
-            menuItem('3', `Dosya Yukle ${colors.gray}(DoSy All veya manuel)${colors.reset}`, colors.brightGreen);
+            menuItem('1', `${colors.brightCyan}[${ICO.list}]${colors.reset} Dosyalari Listele`, colors.brightWhite);
         } else {
-            menuItem('1', 'Dosyalari Listele (baglanti gerekli)', colors.gray, true);
-            menuItem('2', 'Dosya Indir (baglanti gerekli)', colors.gray, true);
-            menuItem('3', 'Dosya Yukle (baglanti gerekli)', colors.gray, true);
+            menuItem('1', `[${ICO.list}] Dosyalari Listele (Baglanti gerekli)`, colors.gray, true);
         }
 
-        // -- SUNUCU & AG --
-        sectionHead('SUNUCU & AG');
-        menuItem('4', 'Sunucuya Baglan / Baslat', colors.brightCyan);
         if (isLocalServer) {
-            menuItem('5', 'Tunel Yonetimi (Dis Erisim)', colors.brightCyan);
-            menuItem('6', 'Paylasilan Klasoru Degistir', colors.brightCyan);
+            menuItem('2', `${colors.brightCyan}[/]${colors.reset} Paylasilan Klasoru Degistir`, colors.brightWhite);
         } else {
-            menuItem('5', 'Tunel Yonetimi (kendi sunucunuzda)', colors.gray, true);
-            menuItem('6', 'Klasoru Degistir (kendi sunucunuzda)', colors.gray, true);
+            menuItem('2', '[/] Paylasilan Klasoru Degistir (Kendi sunucunuzda)', colors.gray, true);
         }
 
-        // -- DIGER --
-        sectionHead('DIGER');
-        menuItem('7', 'Sunucu Bilgileri & QR Kodlari', colors.brightYellow);
         if (isConnected) {
-            menuItem('8', 'Chat Odasina Katil', colors.brightMagenta);
+            menuItem('3', `${colors.brightGreen}[${ICO.dl}]${colors.reset} Dosya Indir`, colors.brightWhite);
+            menuItem('4', `${colors.brightYellow}[${ICO.ul}]${colors.reset} Dosya Yukle ${colors.gray}(DoSy All veya manuel)${colors.reset}`, colors.brightWhite);
         } else {
-            menuItem('8', 'Chat Odasina Katil (baglanti gerekli)', colors.gray, true);
+            menuItem('3', `[${ICO.dl}] Dosya Indir (Baglanti gerekli)`, colors.gray, true);
+            menuItem('4', `[${ICO.ul}] Dosya Yukle (Baglanti gerekli)`, colors.gray, true);
         }
-        console.log(`\n  ${colors.gray}${B.sh.repeat(W - 4)}${colors.reset}`);
-        menuItem('9', `${colors.red}Cikis${colors.reset}`, colors.red);
+
+        console.log('');
+
+        menuItem('5', `${colors.blue}[<>]${colors.reset} Sunucuya Baglan / Kendi Sunucunu Baslat`, colors.brightWhite);
+
+        if (isLocalServer) {
+            menuItem('6', `${colors.brightMagenta}[~~]${colors.reset} Tunel Yonetimi (Dis Erisim Ac/Kapa)`, colors.brightWhite);
+        } else {
+            menuItem('6', '[~~] Tunel Yonetimi (Kendi sunucunuzda)', colors.gray, true);
+        }
+
+        console.log('');
+
+        menuItem('7', `${colors.brightYellow}[#]${colors.reset} Sunucu Bilgileri & QR Kodlari`, colors.brightWhite);
+
+        console.log('');
+
+        if (isConnected) {
+            menuItem('8', `${colors.brightGreen}[${ICO.chat}]${colors.reset} Chat Odasina Katil`, colors.brightWhite);
+        } else {
+            menuItem('8', `[${ICO.chat}] Chat Odasina Katil (Baglanti gerekli)`, colors.gray, true);
+        }
+
+        menuItem('9', `${colors.brightRed}[Q]${colors.reset} Cikis`, colors.brightWhite);
+        menuItem('0', `${colors.brightCyan}[R]${colors.reset} Sunucuyu Yeniden Baslat`, colors.brightWhite);
 
         const choice = await prompt('Seciminiz:');
+        console.clear();
 
         try {
             if (choice === '1' && isConnected) {
                 await showFileList();
                 await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
             }
-            else if (choice === '2' && isConnected) { await handleDownload(); }
-            else if (choice === '3' && isConnected) { await handleUpload(); }
-            else if (choice === '4') {
-                await handleConnect();
-            }
-            else if (choice === '5') {
-                await handleTunnel();
-            }
-            else if (choice === '6' && isLocalServer) {
+            else if (choice === '2' && isLocalServer) {
                 const newPath = await prompt('Paylasilacak klasor yolu:');
                 if (newPath) {
                     const cleanPath = newPath.trim().replace(/^'|^"|'$|"$/g, '');
@@ -838,9 +855,17 @@ async function mainMenu() {
                 }
                 await question(`\n  ${colors.gray}Enter...${colors.reset}`);
             }
+            else if (choice === '3' && isConnected) { await handleDownload(); }
+            else if (choice === '4' && isConnected) { await handleUpload(); }
+            else if (choice === '5') {
+                await handleConnect();
+            }
+            else if (choice === '6') {
+                await handleTunnel();
+            }
             else if (choice === '7') {
                 if (!isConnected) {
-                    msgErr('Once bir sunucuya baglanmalisiniz. (Secenek 4)');
+                    msgErr('Once bir sunucuya baglanmalisiniz. (Secenek 5)');
                 } else {
                     const info = await request('GET', '/api/info');
                     console.log('');
@@ -887,15 +912,75 @@ async function mainMenu() {
             else if (choice === '8' && isConnected) {
                 await handleChat();
             }
-            else if (choice === '9') {
+            else if (choice === '9' || choice.toLowerCase() === 'q') {
                 console.log('');
                 msgInfo('Sunucu kapatiliyor...');
                 shutdownServer();
                 console.log(`\n  ${colors.bright}${colors.brightCyan}Gule gule!${colors.reset}\n`);
                 setTimeout(() => process.exit(0), 100);
             }
-            else if (['1', '2', '3', '8'].includes(choice) && !isConnected) {
-                msgErr('Once bir sunucuya baglanmalisiniz. (Secenek 4)');
+            else if (choice === '0') {
+                console.log('');
+
+                let wasTunnelActive = false;
+                if (isConnected) {
+                    try {
+                        const statusResp = await request('GET', '/api/tunnel/status');
+                        if (statusResp && statusResp.running) {
+                            wasTunnelActive = true;
+                        }
+                    } catch (e) {}
+                }
+
+                msgInfo('Sunucu yeniden baslatiliyor...');
+                shutdownServer();
+
+                // Eski sunucu tamamen kapanana kadar bekle (max 6s)
+                msgInfo('Eski sunucu kapatiliyor...');
+                let serverDead = false;
+                for (let i = 0; i < 12; i++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    const stillUp = await testConnection('http://localhost:3000', 500);
+                    if (!stillUp.success) {
+                        serverDead = true;
+                        break;
+                    }
+                }
+                if (!serverDead) {
+                    msgWarn('Sunucu tam kapanmadi, devam ediliyor...');
+                }
+
+                const started = await startLocalServer();
+                
+                if (started && wasTunnelActive) {
+                    msgInfo('Tunel yeniden aciliyor, lutfen bekleyin...');
+                    await new Promise(r => setTimeout(r, 2000)); // sunucu tamamen ayağa kalkıp tünel isteğine hazır olana kadar azıcık tolerans
+                    try {
+                        let waitTunnel = 0;
+                        let lastResult = null;
+                        while(waitTunnel < 3){
+                            const result = await request('POST', '/api/tunnel/start');
+                            if (result && result.url) {
+                                lastResult = result;
+                                break;
+                            }
+                            waitTunnel++;
+                            await new Promise(r => setTimeout(r, 2000));
+                        }
+                        if (lastResult && lastResult.url) {
+                            msgOk(`Tunel basariyla acildi: ${lastResult.url}`);
+                        } else {
+                            msgErr('Tunel acilamadi.');
+                        }
+                    } catch (e) {
+                        msgErr('Tunel baglantisi kurulamadi.');
+                    }
+                }
+
+                await question(`\n  ${colors.gray}Devam etmek icin Enter...${colors.reset}`);
+            }
+            else if (['1', '3', '4', '8'].includes(choice) && !isConnected) {
+                msgErr('Once bir sunucuya baglanmalisiniz. (Secenek 5)');
                 await question(`\n  ${colors.gray}Enter...${colors.reset}`);
             }
         } catch (e) {
