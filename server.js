@@ -328,17 +328,27 @@ async function startServer() {
       console.error('[X] Tünel başlatma sırasında hata:', err.message);
     });
 
-    console.log('\x1b[36m%s\x1b[0m', '===================================================');
-    console.log('\x1b[32m%s\x1b[0m', '[>>] DOSYA PAYLAŞIM SUNUCUSU AKTİF');
-    console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
-    console.log(`[/] Klasör: ${UPLOAD_DIR}`);
-    console.log(`[=] Yerel Ağ: ${serverUrl}`);
-    console.log('\x1b[36m%s\x1b[0m', '---------------------------------------------------');
+    const R = '\x1b[0m', B = '\x1b[1m';
+    const C = '\x1b[36m', GR = '\x1b[90m';
+    const BG = '\x1b[92m', BY = '\x1b[93m';
+    const h = '\u2550', v = '\u2551', tl = '\u2554', tr = '\u2557', bl = '\u255A', br = '\u255D', ml = '\u2560', mr = '\u2563';
+    const sw = 50;
+    const dot = '\u00B7';
 
-    console.log('\n\x1b[33m%s\x1b[0m', '[#] YEREL AĞ QR KODU (Ev/Ofis İçi):');
+    console.log(`${C}${tl}${h.repeat(sw-2)}${tr}${R}`);
+    console.log(`${C}${v}${R}                                                ${C}${v}${R}`);
+    console.log(`${C}${v}${R}     ${B}${BG}DOSYA PAYLASIM SUNUCUSU AKTIF${R}     ${C}${v}${R}`);
+    console.log(`${C}${v}${R}                                                ${C}${v}${R}`);
+    console.log(`${C}${ml}${h.repeat(sw-2)}${mr}${R}`);
+    console.log(`${C}${v}${R}  ${BY}Klasor ${GR}${dot}${dot}${R} ${UPLOAD_DIR}${' '.repeat(Math.max(0, sw - 14 - UPLOAD_DIR.length))}${C}${v}${R}`);
+    console.log(`${C}${v}${R}  ${BY}Yerel  ${GR}${dot}${dot}${R} ${serverUrl}${' '.repeat(Math.max(0, sw - 14 - serverUrl.length))}${C}${v}${R}`);
+    console.log(`${C}${bl}${h.repeat(sw-2)}${br}${R}`);
+
+    console.log(`\n  ${B}${BY}YEREL AG QR KODU${R} ${GR}(Ev/Ofis Ici)${R}`);
+    console.log(`  ${GR}${'\u2500'.repeat(sw-4)}${R}`);
     getQrcodeTerminal().generate(serverUrl, { small: true });
 
-    console.log('\n\x1b[36m%s\x1b[0m', '---------------------------------------------------\n');
+    console.log('');
   });
 }
 
